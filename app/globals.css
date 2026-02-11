@@ -11,6 +11,7 @@
 body {
   color: rgb(var(--foreground-rgb));
   font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  overflow: hidden; /* Prevent page-level scrollbar */
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
