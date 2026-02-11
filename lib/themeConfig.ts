@@ -6,13 +6,15 @@ export interface ThemeConfig {
   id: string;
   name: string;
   type: 'free' | 'pro';
-  
+
   container: {
     background: string; // Supports CSS colors, gradients, or patterns (shorthand allowed)
+    backgroundImage?: string; // Optional image URL or gradient for background
     padding: string;
     radius: string;
     shadow: string;
     border: string;
+    headerStyle?: 'none' | 'iphone' | 'mac';
   };
 
   typography: {
@@ -272,6 +274,85 @@ export const THEMES: ThemeConfig[] = [
       },
     },
   },
+
+  // 7. iPhone Memo (Dotted Style)
+  {
+    id: 'memo',
+    name: 'iPhone Note',
+    type: 'free',
+    container: {
+      background: '#fbfbf9', // Slightly off-white paper
+      // Dotted grid pattern simulation
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.2' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3C/g%3E%3C/svg%3E")`,
+      padding: '28px',
+      radius: '12px',
+      shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      border: 'none',
+      headerStyle: 'iphone',
+    },
+    typography: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      baseFontSize: '17px',
+      lineHeight: '1.6',
+      titleColor: '#1a1a1a',
+      textColor: '#333333',
+    },
+    palette: {
+      accent: '#f59e0b', // Amber-500
+      secondary: '#d4d4d4',
+    },
+    components: {
+      codeBlock: {
+        style: 'minimal',
+        background: 'rgba(0,0,0,0.03)',
+        textColor: '#333333',
+      },
+      blockquote: {
+        style: 'bar',
+        color: '#f59e0b',
+        background: 'rgba(245, 158, 11, 0.08)',
+      },
+    },
+  },
+
+  // 8. Cute Paw (Image Background Example)
+  {
+    id: 'cute-paw',
+    name: 'Cute Paw',
+    type: 'pro',
+    container: {
+      background: '#eef2ff', // Fallback color
+      // Example decorative background image
+      backgroundImage: 'radial-gradient(circle at top right, #fb7185 0%, transparent 20%), radial-gradient(circle at bottom left, #60a5fa 0%, transparent 20%)',
+      padding: '32px',
+      radius: '24px',
+      shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      border: '4px solid #ffffff',
+    },
+    typography: {
+      fontFamily: '"Nunito", sans-serif', // Rounded font
+      baseFontSize: '16px',
+      lineHeight: '1.7',
+      titleColor: '#3730a3', // Indigo 800
+      textColor: '#4f46e5', // Indigo 600
+    },
+    palette: {
+      accent: '#f43f5e', // Rose 500
+      secondary: '#c7d2fe',
+    },
+    components: {
+      codeBlock: {
+        style: 'simple', // 'card' was invalid, changed to 'simple'
+        background: '#ffffff',
+        textColor: '#3730a3',
+      },
+      blockquote: {
+        style: 'card',
+        color: '#f43f5e',
+        background: '#ffffff',
+      },
+    },
+  },
 ];
 
 // --- 3. Helper Function ---
@@ -280,26 +361,27 @@ export const getThemeStyles = (theme: ThemeConfig): React.CSSProperties => {
   return {
     // Container
     '--theme-bg': theme.container.background,
+    '--theme-bg-image': theme.container.backgroundImage || 'none', // New CSS Variable
     '--theme-padding': theme.container.padding,
     '--theme-radius': theme.container.radius,
     '--theme-shadow': theme.container.shadow,
     '--theme-border': theme.container.border,
-    
+
     // Typography
     '--theme-font': theme.typography.fontFamily,
     '--theme-text-base': theme.typography.baseFontSize,
     '--theme-line-height': theme.typography.lineHeight,
     '--theme-title-color': theme.typography.titleColor,
     '--theme-text-color': theme.typography.textColor,
-    
+
     // Palette
     '--theme-accent': theme.palette.accent,
     '--theme-secondary': theme.palette.secondary,
-    
+
     // Code Blocks
     '--code-bg': theme.components.codeBlock.background,
     '--code-text': theme.components.codeBlock.textColor,
-    
+
     // Blockquotes
     '--quote-bg': theme.components.blockquote.background,
     '--quote-accent': theme.components.blockquote.color,

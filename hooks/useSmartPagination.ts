@@ -95,7 +95,14 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
             // Parse padding from theme config (e.g., '24px' -> 24)
             const paddingVal = parseInt(theme.container.padding) || 24;
             const paddingY = paddingVal * 2;
-            const MAX_CONTENT_HEIGHT = cardHeight - paddingY - 40; // -40 for footer
+            let availableHeight = cardHeight - paddingY - 40; // -40 for footer
+
+            // Account for Header Height
+            if (theme.container.headerStyle === 'iphone') {
+                availableHeight -= 60; // Approximate height of iPhone header
+            }
+
+            const MAX_CONTENT_HEIGHT = availableHeight;
 
             // We track the start offset of the current page's content
             let pageStartOffset = blockNodes[0].offsetTop;

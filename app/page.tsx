@@ -14,6 +14,7 @@ import { CoverCard, CoverSettings } from '../components/CoverCard';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { ThemeSidebar } from '../components/ThemeSidebar';
 import { useSmartPagination, Block } from '../hooks/useSmartPagination';
+import { IPhoneHeader } from '../components/ThemeHeaders';
 
 // --- Constants ---
 const CARD_WIDTH = 375;
@@ -350,12 +351,22 @@ Visit [Next.js Documentation](https://nextjs.org) to learn more.这是一个非�
                 ...themeStyles as React.CSSProperties, // Apply CSS Variables
                 // Apply container styles directly as well for html-to-image compatibility
                 background: 'var(--theme-bg)',
+                backgroundImage: 'var(--theme-bg-image)', // Apply new background image var
+                backgroundSize: '20px 20px, 100% 100%', // Default size for patterns (dots)
+                backgroundRepeat: 'repeat, no-repeat',
                 padding: 'var(--theme-padding)',
                 borderRadius: 'var(--theme-radius)',
                 border: 'var(--theme-border)',
               }}
             >
+
+
               <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
+
+                {/* Optional Theme Header */}
+                {currentTheme.container.headerStyle === 'iphone' && (
+                  <IPhoneHeader />
+                )}
 
                 {/* Page Content */}
                 <div className="flex-1">
