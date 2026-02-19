@@ -4,10 +4,12 @@ import { ThemeConfig } from '../lib/themeConfig';
 export interface Block {
     id: string;
     content: string;
-    type: 'code' | 'standard';
+    type: 'code' | 'standard' | 'image';
 }
 
 // --- Helper: Split Markdown into Blocks ---
+const IMAGE_LINE_RE = /^!\[.*?\]\(.*?\)\s*$/;
+
 const splitMarkdownIntoBlocks = (markdown: string): Block[] => {
     const blocks: Block[] = [];
     const lines = markdown.split('\n');
@@ -15,7 +17,7 @@ const splitMarkdownIntoBlocks = (markdown: string): Block[] => {
     let inCodeBlock = false;
     let blockIdCounter = 0;
 
-    const flush = (type: 'code' | 'standard') => {
+    const flush = (type: 'code' | 'standard' | 'image') => {
         if (currentBlockContent.length > 0) {
             blocks.push({
                 id: `block-${blockIdCounter++}`,
@@ -37,12 +39,15 @@ const splitMarkdownIntoBlocks = (markdown: string): Block[] => {
                 flush('code');
                 inCodeBlock = false;
             }
+        } else if (!inCodeBlock && IMAGE_LINE_RE.test(line.trim())) {
+            // Flush any preceding standard content, then flush image as its own block
+            flush('standard');
+            currentBlockContent.push(line);
+            flush('image');
         } else {
             if (inCodeBlock) {
                 currentBlockContent.push(line);
             } else {
-                // Updated logic: Don't flush on every empty line, only if it separates distinct blocks if needed.
-                // For now, keeping original logic: flush on empty line to create smaller blocks for better pagination.
                 if (line.trim() === '' && currentBlockContent.length > 0) {
                     currentBlockContent.push(line);
                     flush('standard');
@@ -120,8 +125,22 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
                 const heightOnPage = nodeBottom - pageStartOffset;
                 const singleBlockHeight = node.offsetHeight;
 
-                // Check 1: Is the SINGLE block taller than the entire allowed area? -> FORCE SPLIT
+                // Check 1: Is the SINGLE block taller than the entire allowed area?
+                // - For image blocks: push to next page (never split an image)
+                // - For other blocks: force-split at ratio
                 if (singleBlockHeight > MAX_CONTENT_HEIGHT) {
+                    if (block.type === 'image') {
+                        // Image can't be split — push current page and start fresh with this image
+                        if (currentPage.length > 0) {
+                            newPages.push(currentPage);
+                        }
+                        // Put the image alone on its own page
+                        newPages.push([block]);
+                        currentPage = [];
+                        pageStartOffset = i + 1 < blockNodes.length ? blockNodes[i + 1].offsetTop : pageStartOffset;
+                        continue;
+                    }
+
                     // Calculate split point (SAFETY MARGIN: 0.9 to avoid edge cases where split fits exactly but margin pushes it over)
                     const ratio = MAX_CONTENT_HEIGHT / singleBlockHeight * 0.9;
                     const newBlocks = splitBlock(block, ratio);
@@ -139,14 +158,22 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
                     }
                 }
 
-                // Check 2: Normal Pagination
+                // Check 2a: Image-specific — if image doesn't fit remaining space, push to next page
+                if (block.type === 'image' && currentPage.length > 0) {
+                    const usedHeight = node.offsetTop - pageStartOffset;
+                    const remainingHeight = MAX_CONTENT_HEIGHT - usedHeight;
+                    if (singleBlockHeight > remainingHeight) {
+                        newPages.push(currentPage);
+                        currentPage = [block];
+                        pageStartOffset = node.offsetTop;
+                        continue;
+                    }
+                }
+
+                // Check 2b: Normal Pagination — block doesn't fit on current page
                 if (currentPage.length > 0 && heightOnPage > MAX_CONTENT_HEIGHT) {
                     newPages.push(currentPage);
                     currentPage = [block];
-
-                    // The new page starts at this node's top
-                    // Note: When we move it to a new page, its generic top margin might change if it's the first child,
-                    // but using its current offsetTop is a safe upper bound on how much space it needs relative to others.
                     pageStartOffset = node.offsetTop;
                 } else {
                     currentPage.push(block);

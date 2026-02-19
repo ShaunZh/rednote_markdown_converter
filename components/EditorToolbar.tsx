@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Bold,
   Italic,
@@ -9,6 +9,8 @@ import {
   Code,
   Quote,
   Minus,
+  Image,
+  Loader2,
 } from 'lucide-react';
 
 interface EditorToolbarProps {
@@ -17,11 +19,73 @@ interface EditorToolbarProps {
   setMarkdown: (value: string) => void;
 }
 
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   textareaRef,
   markdown,
   setMarkdown,
 }) => {
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      alert('Cloudinary 配置缺失，请检查 .env.local 中的 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME 和 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', UPLOAD_PRESET);
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || '上传失败');
+      }
+
+      const data = await res.json();
+      // Insert Cloudinary transformation: scale to 700px wide (2× card width for retina)
+      const imageUrl: string = data.secure_url.replace(
+        '/upload/',
+        '/upload/w_700,c_scale/'
+      );
+      const altText = file.name.replace(/\.[^.]+$/, '');
+      const imageMarkdown = `![${altText}](${imageUrl})`;
+
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const prev = textarea.value;
+      const newText = prev.substring(0, start) + imageMarkdown + prev.substring(end);
+      setMarkdown(newText);
+
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const cursor = start + imageMarkdown.length;
+        textarea.setSelectionRange(cursor, cursor);
+      });
+    } catch (err: any) {
+      alert(`图片上传失败：${err.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const insertText = (before: string, after: string = '') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -121,6 +185,20 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         onClick={() => insertText('\n---\n')}
         label="Divider"
       />
+      <div className="w-px h-4 bg-neutral-300 mx-1" />
+      <ToolbarButton
+        icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
+        onClick={() => !isUploading && imageInputRef.current?.click()}
+        label={isUploading ? '上传中...' : 'Insert Image'}
+        disabled={isUploading}
+      />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageInsert}
+      />
     </div>
   );
 };
@@ -129,16 +207,22 @@ const ToolbarButton = ({
   icon,
   onClick,
   label,
+  disabled = false,
 }: {
   icon: React.ReactNode;
   onClick: () => void;
   label: string;
+  disabled?: boolean;
 }) => (
   <button
     onClick={onClick}
-    className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-neutral-200 rounded transition-colors"
+    className={`p-1.5 rounded transition-colors ${disabled
+      ? 'text-slate-400 cursor-not-allowed'
+      : 'text-slate-600 hover:text-slate-900 hover:bg-neutral-200'
+      }`}
     title={label}
     type="button"
+    disabled={disabled}
   >
     {icon}
   </button>
