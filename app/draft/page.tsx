@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Download, PenTool, Layout } from 'lucide-react';
@@ -14,7 +15,6 @@ import {
   generateDocId,
   titleFromMarkdown,
   subtitleFromMarkdown,
-  getDraft,
   setDraft,
   type CoverSettingsStored,
 } from '../../lib/draftStorage';
@@ -38,92 +38,7 @@ const EXPORT_SCALE = 3;
 
 const EditorContent: React.FC = () => {
   // State
-  const [markdown, setMarkdown] = useState<string>(`# 🎨 Design System Guide
-
-Welcome to the **RedNote Converter** style guide. This document demonstrates all supported markdown features.
-
-## 1. Typography & Formatting
-
-We support standard markdown formatting:
-- **Bold text** for emphasis
-- *Italic text* for subtlety
-- ~~Strikethrough~~ for deprecated items
-- \`Inline code\` for technical terms
-
-> "Design is not just what it looks like and feels like. Design is how it works."
-> — *Steve Jobs*
-
----
-
-## 2. Lists & Organization
-
-### Ordered List
-1.  **Research**: Understand the user patterns
-2.  **Design**: Create high-fidelity mockups
-3.  **Develop**: Build with efficient code
-
-### Unordered List
-- 🎨 **Color Palette**: Vibrant and accessible
-- 📐 **Typography**: Clean and readable
-- ⚡️ **Performance**: Fast loading times
-
-### Nested List
-- Frontend
-  - React
-  - Tailwind CSS
-- Backend
-  - Node.js
-  - Next.js
-
----
-
-## 3. Code Blocks
-
-We support syntax highlighting with a Mac-style window header.
-
-### TypeScript / React
-\`\`\`tsx
-interface Props {
-  title: string;
-  isActive: boolean;
-}
-
-const Button: React.FC<Props> = ({ title, isActive }) => {
-  return (
-    <button className={isActive ? 'active' : 'inactive'}>
-      {title}
-    </button>
-  );
-};
-\`\`\`
-
-### CSS / Styling
-\`\`\`css
-.card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  padding: 1.5rem;
-}
-\`\`\`
-
----
-
-## 4. Visual Elements
-
-### Tables (GFM)
-| Feature | Status | Priority |
-| :--- | :---: | ---: |
-| Dark Mode | ✅ Ready | High |
-| Export | ✅ Ready | High |
-| Cloud Sync | 🚧 WIP | Low |
-
-### Images
-![Abstract Design](https://picsum.photos/seed/design/800/400)
-*Figure 1: Generated placeholder image*
-
-### Links
-Visit [Next.js Documentation](https://nextjs.org) to learn more.这是一个非常经典的前端难题。在 Web 开发中，浏览器本身是流式布局（Flow Layout），并不存在“页”的概念（除了打印模式）。针对将 Markdown 转为固定尺寸图片（如小红书 3:4 卡片）的场景，市面上没有直接能用的完美 npm 包，但有一套成熟的 “DOM 预计算 + 贪心算法” 解决方案核心原理：贪心装箱算法 (Greedy Bin Packing)想象你有这堆东西：标题、段落、代码块、图片。 你有一堆箱子（卡片），每个箱子高度固定为 1000px。这是一个非常经典的前端难题。在 Web 开发中，浏览器本身是流式布局（Flow Layout），并不存在“页”的概念（除了打印模式）。这是一个非常经典的前端难题。在 Web 开发中，浏览器本身是流式布局（Flow Layout），并不存在“页”的概念（除了打印模式）。针对将 Markdown 转为固定尺寸图片（如小红书 3:4 卡片）的场景，市面上没有直接能用的完美 npm 包，但有一套成熟的 “DOM 预计算 + 贪心算法” 解决方案核心原理：贪心装箱算法 (Greedy Bin Packing)想象你有这堆东西：标题、段落、代码块、图片。 你有一堆箱子（卡片），每个箱子高度固定为 1000px。这是一个非常经典的前端难题。在 Web 开发中，浏览器本身是流式布局（Flow Layout），并不存在“页”的概念（除了打印模式）。这是一个非常经典的前端难题。在 Web 开发中，浏览器本身是流式布局（Flow Layout），并不存在“页”的概念（除了打印模式）。针对将 Markdown 转为固定尺寸图片（如小红书 3:4 卡片）的场景，市面上没有直接能用的完美 npm 包，但有一套成熟的 “DOM 预计算 + 贪心算法” 解决方案核心原理：贪心装箱算法 (Greedy Bin Packing)想象你有这堆东西：标题、段落、代码块、图片。 你有一堆箱子（卡片），每个箱子高度固定为 1000px。这是一个非常经典的前端难题。在 Web 开发中，浏览器本身是流式布局（Flow Layout），并不存在“页”的概念（除了打印模式）。`);
+  const [markdown, setMarkdown] = useState<string>('');
 
   // Use the new ThemeConfig system
   const [currentTheme, setCurrentTheme] = useState<ThemeConfig>(THEMES[0]);
@@ -169,7 +84,7 @@ Visit [Next.js Documentation](https://nextjs.org) to learn more.这是一个非�
     cardHeight: CARD_HEIGHT
   });
 
-  // --- Load by ?id= or restore draft (once) ---
+  // --- Load by ?id= (once) ---
   useEffect(() => {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;
@@ -183,22 +98,15 @@ Visit [Next.js Documentation](https://nextjs.org) to learn more.这是一个非�
         if (theme) setCurrentTheme(theme);
         currentDocumentIdRef.current = doc.id;
       }
-      return;
-    }
-    const draft = getDraft();
-    if (draft.markdown) setMarkdown(draft.markdown);
-    if (draft.coverSettings) setCoverSettings(draft.coverSettings as CoverSettings);
-    if (draft.themeId) {
-      const theme = THEMES.find((t) => t.id === draft.themeId);
-      if (theme) setCurrentTheme(theme);
     }
   }, [searchParams]);
 
   const flushDraft = useCallback(() => {
+    const { markdown: md, coverSettings: coverStored, themeId, pageCount } = latestStateRef.current;
+    if (md.trim().length === 0) return;
+
     const id = currentDocumentIdRef.current ?? generateDocId();
     if (!currentDocumentIdRef.current) currentDocumentIdRef.current = id;
-
-    const { markdown: md, coverSettings: coverStored, themeId, pageCount } = latestStateRef.current;
 
     setDraft(md, coverStored, themeId);
     saveRecentEdit({
@@ -293,12 +201,12 @@ Visit [Next.js Documentation](https://nextjs.org) to learn more.这是一个非�
 
       {/* --- Top Bar --- */}
       <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm relative">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 hover:opacity-90">
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
             R
           </div>
           <h1 className="font-bold text-xl tracking-tight hidden sm:block">RedNote Converter</h1>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-3">
           {exportProgress && (
@@ -366,7 +274,6 @@ Visit [Next.js Documentation](https://nextjs.org) to learn more.这是一个非�
               <EditorHeader onImportClick={() => setIsImportModalOpen(true)} />
               <EditorToolbar
                 textareaRef={textareaRef}
-                markdown={markdown}
                 setMarkdown={setMarkdown}
               />
               <textarea

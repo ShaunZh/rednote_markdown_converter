@@ -80,6 +80,11 @@ export function saveRecentEdit(item: Omit<RecentEditItem, 'updatedAt'> & { updat
   safeSet(STORAGE_KEYS.recentEdits, JSON.stringify(next));
 }
 
+export function deleteRecentEdit(id: string): void {
+  const next = getRecentEdits().filter((x) => x.id !== id);
+  safeSet(STORAGE_KEYS.recentEdits, JSON.stringify(next));
+}
+
 export function generateDocId(): string {
   return `doc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }

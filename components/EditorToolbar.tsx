@@ -11,11 +11,14 @@ import {
   Minus,
   Image,
   Loader2,
+  BookOpenText,
+  FileText,
+  X,
 } from 'lucide-react';
+import { RICH_TEXT_TEMPLATE } from '../lib/richTextTemplate';
 
 interface EditorToolbarProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  markdown: string;
   setMarkdown: (value: string) => void;
 }
 
@@ -24,11 +27,12 @@ const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   textareaRef,
-  markdown,
   setMarkdown,
 }) => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSyntaxModalOpen, setIsSyntaxModalOpen] = useState(false);
+  const [isTemplateConfirmOpen, setIsTemplateConfirmOpen] = useState(false);
 
   const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,71 +139,175 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     });
   };
 
+  const handleUseTemplate = () => {
+    setMarkdown(RICH_TEXT_TEMPLATE);
+    setIsTemplateConfirmOpen(false);
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(0, 0);
+    });
+  };
+
   return (
-    <div className="flex items-center gap-1 p-2 border-b border-neutral-200 bg-neutral-50 overflow-x-auto no-scrollbar shrink-0">
-      <ToolbarButton
-        icon={<Bold size={16} />}
-        onClick={() => insertText('**', '**')}
-        label="Bold"
-      />
-      <ToolbarButton
-        icon={<Italic size={16} />}
-        onClick={() => insertText('*', '*')}
-        label="Italic"
-      />
-      <div className="w-px h-4 bg-neutral-300 mx-1" />
-      <ToolbarButton
-        icon={<Heading2 size={16} />}
-        onClick={() => insertAtLineStart('## ')}
-        label="Heading 2"
-      />
-      <ToolbarButton
-        icon={<Heading3 size={16} />}
-        onClick={() => insertAtLineStart('### ')}
-        label="Heading 3"
-      />
-      <div className="w-px h-4 bg-neutral-300 mx-1" />
-      <ToolbarButton
-        icon={<List size={16} />}
-        onClick={() => insertAtLineStart('- ')}
-        label="Bullet List"
-      />
-      <ToolbarButton
-        icon={<CheckSquare size={16} />}
-        onClick={() => insertAtLineStart('- [ ] ')}
-        label="Check List"
-      />
-      <div className="w-px h-4 bg-neutral-300 mx-1" />
-      <ToolbarButton
-        icon={<Quote size={16} />}
-        onClick={() => insertAtLineStart('> ')}
-        label="Quote"
-      />
-      <ToolbarButton
-        icon={<Code size={16} />}
-        onClick={() => insertText('```\n', '\n```')}
-        label="Code Block"
-      />
-      <ToolbarButton
-        icon={<Minus size={16} />}
-        onClick={() => insertText('\n---\n')}
-        label="Divider"
-      />
-      <div className="w-px h-4 bg-neutral-300 mx-1" />
-      <ToolbarButton
-        icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
-        onClick={() => !isUploading && imageInputRef.current?.click()}
-        label={isUploading ? '上传中...' : 'Insert Image'}
-        disabled={isUploading}
-      />
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleImageInsert}
-      />
-    </div>
+    <>
+      <div className="flex items-center gap-1 p-2 border-b border-neutral-200 bg-neutral-50 overflow-x-auto no-scrollbar shrink-0">
+        <ToolbarButton
+          icon={<BookOpenText size={16} />}
+          onClick={() => setIsSyntaxModalOpen(true)}
+          label="语法示例"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={<Bold size={16} />}
+          onClick={() => insertText('**', '**')}
+          label="Bold"
+        />
+        <ToolbarButton
+          icon={<Italic size={16} />}
+          onClick={() => insertText('*', '*')}
+          label="Italic"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={<Heading2 size={16} />}
+          onClick={() => insertAtLineStart('## ')}
+          label="Heading 2"
+        />
+        <ToolbarButton
+          icon={<Heading3 size={16} />}
+          onClick={() => insertAtLineStart('### ')}
+          label="Heading 3"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={<List size={16} />}
+          onClick={() => insertAtLineStart('- ')}
+          label="Bullet List"
+        />
+        <ToolbarButton
+          icon={<CheckSquare size={16} />}
+          onClick={() => insertAtLineStart('- [ ] ')}
+          label="Check List"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={<Quote size={16} />}
+          onClick={() => insertAtLineStart('> ')}
+          label="Quote"
+        />
+        <ToolbarButton
+          icon={<Code size={16} />}
+          onClick={() => insertText('```\n', '\n```')}
+          label="Code Block"
+        />
+        <ToolbarButton
+          icon={<Minus size={16} />}
+          onClick={() => insertText('\n---\n')}
+          label="Divider"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
+          onClick={() => !isUploading && imageInputRef.current?.click()}
+          label={isUploading ? '上传中...' : 'Insert Image'}
+          disabled={isUploading}
+        />
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageInsert}
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={<FileText size={16} />}
+          onClick={() => setIsTemplateConfirmOpen(true)}
+          label="填充富文本模板"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <ToolbarButton
+          icon={<BookOpenText size={16} />}
+          onClick={() => setIsSyntaxModalOpen(true)}
+          label="语法示例"
+        />
+      </div>
+
+      {isSyntaxModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setIsSyntaxModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-neutral-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
+              <h3 className="text-base font-semibold text-slate-800">富文本语法示例</h3>
+              <button
+                type="button"
+                onClick={() => setIsSyntaxModalOpen(false)}
+                className="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-neutral-100 transition-colors"
+                title="关闭"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+              <div className="text-xs text-slate-500 mb-3">复制下面语法到编辑区即可看到对应样式：</div>
+              <pre className="text-xs leading-6 text-slate-700 bg-neutral-50 border border-neutral-200 rounded-xl p-4 overflow-x-auto">
+{RICH_TEXT_TEMPLATE}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isTemplateConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setIsTemplateConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-neutral-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
+              <h3 className="text-base font-semibold text-slate-800">使用富文本模板</h3>
+              <button
+                type="button"
+                onClick={() => setIsTemplateConfirmOpen(false)}
+                className="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-neutral-100 transition-colors"
+                title="关闭"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-5 py-4 text-sm text-slate-600 leading-6">
+              将使用富文本模板填充编辑区。此操作会覆盖当前内容，是否继续？
+            </div>
+            <div className="px-5 pb-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTemplateConfirmOpen(false)}
+                className="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 text-slate-600 hover:bg-neutral-100 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleUseTemplate}
+                className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+              >
+                确认填充
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
