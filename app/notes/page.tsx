@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Calendar } from 'lucide-react';
-import { getRecentEdits, type RecentEditItem } from '../../lib/draftStorage';
+import { deleteRecentEdit, getRecentEdits, type RecentEditItem } from '../../lib/draftStorage';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { SiteHeader } from '../../components/SiteHeader';
 
 function formatDateTime(iso: string): string {
@@ -32,6 +33,8 @@ export default function NotesPage() {
   const [query, setQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
 
   useEffect(() => {
     setNotes(getRecentEdits());
@@ -56,6 +59,33 @@ export default function NotesPage() {
         return true;
       });
   }, [notes, query, startDate, endDate]);
+
+  const allSelected = filtered.length > 0 && filtered.every((item) => selectedIds.includes(item.id));
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => (
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    ));
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      const filteredSet = new Set(filtered.map((item) => item.id));
+      setSelectedIds((prev) => prev.filter((id) => !filteredSet.has(id)));
+      return;
+    }
+    const merged = new Set(selectedIds);
+    filtered.forEach((item) => merged.add(item.id));
+    setSelectedIds(Array.from(merged));
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    selectedIds.forEach((id) => deleteRecentEdit(id));
+    setNotes(getRecentEdits());
+    setSelectedIds([]);
+    setIsBatchDeleteOpen(false);
+  };
 
   return (
     <main className="min-h-screen bg-[#f6f6f6] text-[#1f2329]">
@@ -107,6 +137,27 @@ export default function NotesPage() {
               </div>
             </div>
 
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-[#e1e1e1] bg-white px-4 py-2.5">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-slate-300 text-black focus:ring-black/20"
+                />
+                <span>全选当前结果</span>
+              </label>
+
+              <button
+                type="button"
+                disabled={selectedIds.length === 0}
+                onClick={() => setIsBatchDeleteOpen(true)}
+                className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-[#d43838] text-white hover:bg-[#be2e2e]"
+              >
+                删除选中（{selectedIds.length}）
+              </button>
+            </div>
+
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#d8d8d8] bg-white/70 p-8 text-center">
                 <p className="text-lg font-semibold mb-2">没有匹配的笔记</p>
@@ -116,12 +167,20 @@ export default function NotesPage() {
               <div className="grid grid-cols-1 gap-4">
                 {filtered.map((item) => (
                   <article key={item.id} className="rounded-2xl border border-[#e6e6e6] bg-white p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => toggleSelect(item.id)}
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-black focus:ring-black/20"
+                      />
+                      <div className="min-w-0">
                       <h2 className="text-base font-semibold text-[#1a1a1a] truncate">{item.title || '未命名'}</h2>
                       {item.subtitle && (
                         <p className="text-xs text-slate-500 truncate">{item.subtitle}</p>
                       )}
                       <p className="text-xs text-slate-400 mt-1">更新于 {formatDateTime(item.updatedAt)}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-slate-500">{item.pageCount}页</span>
@@ -139,6 +198,16 @@ export default function NotesPage() {
           </section>
         </div>
       </div>
+
+      <DeleteConfirmModal
+        isOpen={isBatchDeleteOpen}
+        title="确认批量删除"
+        description={`将删除选中的 ${selectedIds.length} 条笔记记录，删除后将无法恢复。`}
+        confirmText="确认删除"
+        cancelText="取消"
+        onConfirm={handleBatchDelete}
+        onClose={() => setIsBatchDeleteOpen(false)}
+      />
     </main>
   );
 }

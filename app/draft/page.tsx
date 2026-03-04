@@ -434,7 +434,8 @@ const EditorContent: React.FC = () => {
       {/* --- Hidden Measurement Container --- */}
       <div
         ref={measureRef}
-        className="absolute top-0 left-0 -z-50 opacity-0 pointer-events-none"
+        className="fixed top-0 -left-[9999px] -z-50 opacity-0 pointer-events-none"
+        aria-hidden="true"
         style={{
           width: `${CARD_WIDTH}px`,
           ...themeStyles as React.CSSProperties,

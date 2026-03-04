@@ -13,6 +13,8 @@ import {
   Loader2,
   BookOpenText,
   FileText,
+  Copy,
+  Check,
   X,
 } from 'lucide-react';
 import { RICH_TEXT_TEMPLATE } from '../lib/richTextTemplate';
@@ -33,6 +35,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isSyntaxModalOpen, setIsSyntaxModalOpen] = useState(false);
   const [isTemplateConfirmOpen, setIsTemplateConfirmOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,15 +153,19 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     });
   };
 
+  const handleCopySyntax = async () => {
+    try {
+      await navigator.clipboard.writeText(RICH_TEXT_TEMPLATE);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      alert('复制失败，请手动复制。');
+    }
+  };
+
   return (
     <>
       <div className="flex items-center gap-1 p-2 border-b border-neutral-200 bg-neutral-50 overflow-x-auto no-scrollbar shrink-0">
-        <ToolbarButton
-          icon={<BookOpenText size={16} />}
-          onClick={() => setIsSyntaxModalOpen(true)}
-          label="语法示例"
-        />
-        <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
           icon={<Bold size={16} />}
           onClick={() => insertText('**', '**')}
@@ -256,7 +263,17 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               </button>
             </div>
             <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
-              <div className="text-xs text-slate-500 mb-3">复制下面语法到编辑区即可看到对应样式：</div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-xs text-slate-500">复制下面语法到编辑区即可看到对应样式：</div>
+                <button
+                  type="button"
+                  onClick={handleCopySyntax}
+                  className="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-neutral-100 transition-colors"
+                  title={copied ? '已复制' : '复制示例'}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
               <pre className="text-xs leading-6 text-slate-700 bg-neutral-50 border border-neutral-200 rounded-xl p-4 overflow-x-auto">
 {RICH_TEXT_TEMPLATE}
               </pre>

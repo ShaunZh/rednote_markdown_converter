@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { MoreHorizontal, PenLine, Send, Sparkles } from 'lucide-react';
 import { deleteRecentEdit, getRecentEdits, type RecentEditItem } from '../lib/draftStorage';
+import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { SiteHeader } from '../components/SiteHeader';
 
 function formatDateTime(iso: string): string {
@@ -21,7 +22,7 @@ function previewLines(markdown: string): string[] {
   return lines.slice(0, 6);
 }
 
-function NoteCard({ item, onDelete }: { item: RecentEditItem; onDelete: (id: string) => void }) {
+function NoteCard({ item, onRequestDelete }: { item: RecentEditItem; onRequestDelete: (id: string) => void }) {
   const lines = previewLines(item.markdown);
   const left = lines.slice(0, 3);
   const right = lines.slice(3, 6);
@@ -85,7 +86,7 @@ function NoteCard({ item, onDelete }: { item: RecentEditItem; onDelete: (id: str
               </Link>
               <button
                 type="button"
-                onClick={() => onDelete(item.id)}
+                onClick={() => onRequestDelete(item.id)}
                 className="rounded-lg px-2 py-1.5 text-left text-xs text-[#d43838] hover:bg-[#fff0f0]"
               >
                 删除
@@ -100,6 +101,7 @@ function NoteCard({ item, onDelete }: { item: RecentEditItem; onDelete: (id: str
 
 export default function HomePage() {
   const [recent, setRecent] = useState<RecentEditItem[]>([]);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     setRecent(getRecentEdits());
@@ -107,10 +109,11 @@ export default function HomePage() {
 
   const recentCards = useMemo(() => recent.slice(0, 4), [recent]);
 
-  const handleDelete = (id: string) => {
-    if (!window.confirm('确认删除这条历史记录吗？')) return;
-    deleteRecentEdit(id);
+  const handleDelete = () => {
+    if (!pendingDeleteId) return;
+    deleteRecentEdit(pendingDeleteId);
     setRecent(getRecentEdits());
+    setPendingDeleteId(null);
   };
 
   return (
@@ -167,7 +170,7 @@ export default function HomePage() {
               <div className="flex-1 min-h-0 overflow-y-auto pr-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
                   {recentCards.map((item) => (
-                    <NoteCard key={item.id} item={item} onDelete={handleDelete} />
+                    <NoteCard key={item.id} item={item} onRequestDelete={setPendingDeleteId} />
                   ))}
                 </div>
               </div>
@@ -175,6 +178,16 @@ export default function HomePage() {
           </section>
         </div>
       </div>
+
+      <DeleteConfirmModal
+        isOpen={pendingDeleteId !== null}
+        title="确认删除历史记录"
+        description="删除后将无法恢复，是否继续删除这条历史记录？"
+        confirmText="确认删除"
+        cancelText="取消"
+        onConfirm={handleDelete}
+        onClose={() => setPendingDeleteId(null)}
+      />
     </main>
   );
 }
