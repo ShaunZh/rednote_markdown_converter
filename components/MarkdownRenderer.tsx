@@ -187,6 +187,46 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
     ),
     hr: ({ node, ...props }: any) => (
       <hr className="my-3 border-t-2 opacity-20" style={{ borderColor: 'var(--theme-text-color)' }} {...props} />
+    ),
+    table: ({ node, className, ...props }: any) => (
+      <div className="my-3 overflow-x-auto">
+        <table
+          className={cn("w-full border-collapse text-[0.95em]", className)}
+          style={{ border: '1px solid var(--theme-border)' }}
+          {...props}
+        />
+      </div>
+    ),
+    thead: ({ node, className, ...props }: any) => (
+      <thead
+        className={cn("bg-black/[0.03]", className)}
+        style={{ borderBottom: '1px solid var(--theme-border)' }}
+        {...props}
+      />
+    ),
+    tbody: ({ node, className, ...props }: any) => (
+      <tbody className={cn(className)} {...props} />
+    ),
+    tr: ({ node, className, ...props }: any) => (
+      <tr
+        className={cn(className)}
+        style={{ borderBottom: '1px solid var(--theme-border)' }}
+        {...props}
+      />
+    ),
+    th: ({ node, className, ...props }: any) => (
+      <th
+        className={cn("px-3 py-2 text-left font-semibold", className)}
+        style={{ borderRight: '1px solid var(--theme-border)', color: 'var(--theme-title-color)' }}
+        {...props}
+      />
+    ),
+    td: ({ node, className, ...props }: any) => (
+      <td
+        className={cn("px-3 py-2 align-top", className)}
+        style={{ borderRight: '1px solid var(--theme-border)', color: 'var(--theme-text-color)' }}
+        {...props}
+      />
     )
   };
 
