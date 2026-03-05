@@ -27,3 +27,6 @@ dist-ssr
 .next/
 .next.backup-*/
 out/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
