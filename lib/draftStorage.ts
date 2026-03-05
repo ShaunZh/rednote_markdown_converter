@@ -17,6 +17,7 @@ export interface CoverSettingsStored {
   subtitle: string;
   author: string;
   variant: 'simple' | 'modern' | 'outline';
+  showPageNumber: boolean;
 }
 
 export interface RecentEditItem {

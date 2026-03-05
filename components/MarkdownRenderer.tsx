@@ -20,6 +20,9 @@ const MacWindowHeader = () => (
 );
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) => {
+  const baseLineHeight = Number.parseFloat(theme.typography.lineHeight || '1.6');
+  const contentLineHeight = Math.min(2.1, Number.isFinite(baseLineHeight) ? baseLineHeight + 0.06 : 1.66);
+
   // Use CSS variables for everything to ensure dynamic theming
   const components = {
     code({ node, inline, className, children, ...props }: any) {
@@ -34,7 +37,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
       if (!inline && match) {
         return (
           <div
-            className="rounded-lg overflow-hidden my-4 text-xs shadow-sm border border-[var(--theme-border)]"
+            className="rounded-lg overflow-hidden my-3 text-xs shadow-sm border border-[var(--theme-border)]"
             style={{ backgroundColor: 'var(--code-bg)' }}
           >
             {(isMacStyle || isDarkTheme) && !hideHeader && (
@@ -78,7 +81,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
     },
     h1: ({ node, ...props }: any) => (
       <h1
-        className="text-2xl font-bold mb-4 mt-2"
+        className="text-[23px] font-bold mb-2 mt-1"
         style={{ color: 'var(--theme-title-color)' }}
         {...props}
       />
@@ -86,7 +89,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
     h2: ({ node, ...props }: any) => (
       <h2
         className={cn(
-          "text-xl font-bold mb-3 mt-4",
+          "text-[19px] font-bold mb-2 mt-2.5",
           theme.id === 'minimal' && "pb-2 border-b border-slate-200",
           theme.id === 'geek' && "border-l-4 pl-3 border-[var(--theme-accent)]"
         )}
@@ -96,31 +99,41 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
     ),
     h3: ({ node, ...props }: any) => (
       <h3
-        className="text-lg font-bold mb-2 mt-3"
+        className="text-[17px] font-bold mb-1.5 mt-2"
         style={{ color: 'var(--theme-title-color)' }}
         {...props}
       />
     ),
     p: ({ node, ...props }: any) => (
       <p
-        className="mb-3 leading-[var(--theme-line-height)] text-[length:var(--theme-text-base)]"
-        style={{ color: 'var(--theme-text-color)' }}
+        className="mb-3 text-[calc(var(--theme-text-base)-1px)]"
+        style={{
+          color: 'var(--theme-text-color)',
+          lineHeight: contentLineHeight,
+        }}
         {...props}
       />
     ),
     ul: ({ node, ...props }: any) => (
-      <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-[var(--theme-accent)]" {...props} />
+      <ul className="list-disc pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]" {...props} />
     ),
     ol: ({ node, ...props }: any) => (
-      <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-[var(--theme-accent)]" {...props} />
+      <ol className="list-decimal pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]" {...props} />
     ),
     li: ({ node, ...props }: any) => (
-      <li className="pl-1" style={{ color: 'var(--theme-text-color)' }} {...props} />
+      <li
+        className="pl-1"
+        style={{
+          color: 'var(--theme-text-color)',
+          lineHeight: contentLineHeight,
+        }}
+        {...props}
+      />
     ),
     blockquote: ({ node, ...props }: any) => (
       <blockquote
         className={cn(
-          "pl-4 py-2 my-4 italic text-sm opacity-90 relative",
+          "pl-3.5 py-2 my-2.5 italic text-sm opacity-90 relative",
           theme.components.blockquote.style === 'card' && "rounded-lg pr-4 shadow-sm",
           theme.components.blockquote.style === 'bar' && "border-l-4"
         )}
@@ -134,7 +147,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
     ),
     img: ({ node, ...props }: any) => (
       // eslint-disable-next-line @next/next/no-img-element
-      <img className="rounded-lg my-4 w-full object-cover shadow-sm" {...props} alt={props.alt || ''} />
+      <img className="rounded-lg my-2.5 w-full object-cover shadow-sm" {...props} alt={props.alt || ''} />
     ),
     a: ({ node, ...props }: any) => (
       <a
@@ -144,7 +157,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
       />
     ),
     hr: ({ node, ...props }: any) => (
-      <hr className="my-6 border-t-2 opacity-20" style={{ borderColor: 'var(--theme-text-color)' }} {...props} />
+      <hr className="my-3 border-t-2 opacity-20" style={{ borderColor: 'var(--theme-text-color)' }} {...props} />
     )
   };
 

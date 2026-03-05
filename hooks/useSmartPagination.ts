@@ -7,6 +7,10 @@ export interface Block {
     type: 'code' | 'standard' | 'image';
 }
 
+const FOOTER_RESERVED_HEIGHT = 8;
+const IPHONE_HEADER_RESERVED_HEIGHT = 30;
+const SPLIT_SAFETY_RATIO = 0.97;
+
 // --- Helper: Split Markdown into Blocks ---
 const IMAGE_LINE_RE = /^!\[.*?\]\(.*?\)\s*$/;
 
@@ -65,9 +69,17 @@ interface UseSmartPaginationProps {
     markdown: string;
     theme: ThemeConfig;
     cardHeight: number;
+    includePageNumber: boolean;
+    paddingYOffset?: number;
 }
 
-export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPaginationProps) => {
+export const useSmartPagination = ({
+    markdown,
+    theme,
+    cardHeight,
+    includePageNumber,
+    paddingYOffset = 0,
+}: UseSmartPaginationProps) => {
     const measureRef = useRef<HTMLDivElement>(null);
     const [pages, setPages] = useState<Block[][]>([[]]);
     const [blocks, setBlocks] = useState<Block[]>([]);
@@ -99,12 +111,12 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
 
             // Parse padding from theme config (e.g., '24px' -> 24)
             const paddingVal = parseInt(theme.container.padding) || 24;
-            const paddingY = paddingVal * 2;
-            let availableHeight = cardHeight - paddingY - 40; // -40 for footer
+            const paddingY = Math.max(0, paddingVal * 2 + paddingYOffset);
+            let availableHeight = cardHeight - paddingY - (includePageNumber ? FOOTER_RESERVED_HEIGHT : 0);
 
             // Account for Header Height
             if (theme.container.headerStyle === 'iphone') {
-                availableHeight -= 60; // Approximate height of iPhone header
+                availableHeight -= IPHONE_HEADER_RESERVED_HEIGHT;
             }
 
             const MAX_CONTENT_HEIGHT = availableHeight;
@@ -141,8 +153,8 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
                         continue;
                     }
 
-                    // Calculate split point (SAFETY MARGIN: 0.9 to avoid edge cases where split fits exactly but margin pushes it over)
-                    const ratio = MAX_CONTENT_HEIGHT / singleBlockHeight * 0.9;
+                    // Keep a small safety margin to reduce oversized split fragments.
+                    const ratio = MAX_CONTENT_HEIGHT / singleBlockHeight * SPLIT_SAFETY_RATIO;
                     const newBlocks = splitBlock(block, ratio);
 
                     if (newBlocks) {
@@ -172,6 +184,26 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
 
                 // Check 2b: Normal Pagination — block doesn't fit on current page
                 if (currentPage.length > 0 && heightOnPage > MAX_CONTENT_HEIGHT) {
+                    // Try splitting text/code blocks by remaining space to avoid large blank area.
+                    if (block.type !== 'image') {
+                        const usedHeight = node.offsetTop - pageStartOffset;
+                        const remainingHeight = MAX_CONTENT_HEIGHT - usedHeight;
+                        if (remainingHeight > 48 && singleBlockHeight > 0) {
+                            const ratio = Math.max(0.1, Math.min(0.9, (remainingHeight / singleBlockHeight) * SPLIT_SAFETY_RATIO));
+                            const newBlocks = splitBlock(block, ratio);
+                            if (newBlocks) {
+                                const updatedBlocks = [
+                                    ...blocks.slice(0, i),
+                                    ...newBlocks,
+                                    ...blocks.slice(i + 1)
+                                ];
+                                setBlocks(updatedBlocks);
+                                splitOccurred = true;
+                                break;
+                            }
+                        }
+                    }
+
                     newPages.push(currentPage);
                     currentPage = [block];
                     pageStartOffset = node.offsetTop;
@@ -196,7 +228,7 @@ export const useSmartPagination = ({ markdown, theme, cardHeight }: UseSmartPagi
         }, 150); // Delay to allow rendering
 
         return () => clearTimeout(timeout);
-    }, [blocks, theme, cardHeight]);
+    }, [blocks, theme, cardHeight, includePageNumber, paddingYOffset]);
 
     return {
         pages,
@@ -243,6 +275,54 @@ const splitBlock = (block: Block, ratio: number): [Block, Block] | null => {
         // Text Split (Standard)
         const text = block.content;
         const splitPos = Math.floor(text.length * ratio);
+        const isListBlock = /(^|\n)\s*([-*+]|\d+\.)\s+/.test(text);
+
+        // Priority 0: Prefer natural boundaries around ratio (paragraph/list boundaries).
+        const naturalSearch = Math.min(140, Math.floor(text.length * 0.2));
+        const naturalStart = Math.max(1, splitPos - naturalSearch);
+        const naturalEnd = Math.min(text.length - 1, splitPos + naturalSearch);
+        const candidates: number[] = [];
+
+        for (let i = naturalStart; i < naturalEnd; i++) {
+            if (text[i] !== '\n') continue;
+
+            const prevChar = text[i - 1] || '';
+            const nextChar = text[i + 1] || '';
+            const nextLineStart = i + 1;
+            const nextLineEnd = text.indexOf('\n', nextLineStart);
+            const nextLine = text
+                .slice(nextLineStart, nextLineEnd === -1 ? text.length : nextLineEnd)
+                .trimStart();
+            const isListStart = /^([-*+]|\d+\.)\s+/.test(nextLine);
+            const isParagraphBoundary = prevChar === '\n' || nextChar === '\n';
+
+            if (isParagraphBoundary || isListStart) {
+                candidates.push(i + 1);
+            }
+        }
+
+        if (candidates.length > 0) {
+            let nearest = candidates[0];
+            for (const point of candidates) {
+                if (Math.abs(point - splitPos) < Math.abs(nearest - splitPos)) {
+                    nearest = point;
+                }
+            }
+
+            const part1 = text.substring(0, nearest);
+            const part2 = text.substring(nearest);
+            if (part1.trim().length >= 12 && part2.trim().length >= 12) {
+                return [
+                    { ...block, id: `${block.id}-p1`, content: part1 },
+                    { ...block, id: `${block.id}-p2`, content: part2 }
+                ];
+            }
+        }
+
+        // For list blocks, only split at natural boundaries to avoid breaking list semantics.
+        if (isListBlock) {
+            return null;
+        }
 
         // Analyze neighbors to find best split point (Sentence > Space > Force)
         const searchRange = Math.min(50, text.length * 0.1); // Search 10% or 50 chars around
@@ -253,7 +333,8 @@ const splitBlock = (block: Block, ratio: number): [Block, Block] | null => {
 
         // Priority 1: Sentence End (. ! ? 。 ！)
         let bestSplit = -1;
-        const sentenceRegex = /[.!?;。！？]/g;
+        // Treat "." as sentence end only when it's not a decimal point (e.g. keep "1.2" intact).
+        const sentenceRegex = /(?<!\d)\.(?!\d)|[!?;。！？；]/g;
         let match;
         while ((match = sentenceRegex.exec(fragment)) !== null) {
             // We want to split AFTER the punctuation
@@ -288,6 +369,9 @@ const splitBlock = (block: Block, ratio: number): [Block, Block] | null => {
 
         const part1Text = text.substring(0, bestSplit);
         const part2Text = text.substring(bestSplit); // Trim leading space? Maybe not to preserve formatting
+
+        // Guard against over-fragmented tiny blocks that hurt readability/layout.
+        if (part1Text.trim().length < 40 || part2Text.trim().length < 40) return null;
 
         return [
             { ...block, id: `${block.id}-p1`, content: part1Text },

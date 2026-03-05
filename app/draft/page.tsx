@@ -28,13 +28,33 @@ import { useSmartPagination, Block } from '../../hooks/useSmartPagination';
 import { IPhoneHeader } from '../../components/ThemeHeaders';
 
 // --- Constants ---
-const CARD_WIDTH = 375;
-const CARD_HEIGHT = 500;
-// 375x500 * 2.88 = 1080x1440
-const EXPORT_SCALE = 2.88;
+const CARD_WIDTH = 405;
+const CARD_HEIGHT = 540;
+const EXPORT_TARGET_WIDTH = 1080;
+// 405x540 * 2.6666667 = 1080x1440
+const EXPORT_SCALE = EXPORT_TARGET_WIDTH / CARD_WIDTH;
 const EXPORT_TIMEOUT_MS = 25000;
+const CONTENT_PADDING_TOP_BOTTOM_REDUCTION = 6;
+const CONTENT_PADDING_LEFT_RIGHT_REDUCTION = 14;
 
 type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' | 'error';
+
+const DEFAULT_COVER_SETTINGS: CoverSettings = {
+  enabled: true,
+  title: 'RedNote Guide',
+  subtitle: 'How to create viral content in minutes',
+  author: '@RedNoteCreator',
+  variant: 'simple',
+  showPageNumber: true,
+};
+
+const normalizeCoverSettings = (
+  input: Partial<CoverSettingsStored> | Partial<CoverSettings> | null | undefined
+): CoverSettings => ({
+  ...DEFAULT_COVER_SETTINGS,
+  ...input,
+  variant: (input?.variant as CoverSettings['variant']) ?? DEFAULT_COVER_SETTINGS.variant,
+});
 
 
 
@@ -72,6 +92,7 @@ const EditorContent: React.FC = () => {
       subtitle: '',
       author: '',
       variant: 'simple' as CoverSettingsStored['variant'],
+      showPageNumber: true,
     },
     themeId: THEMES[0].id,
     pageCount: 1,
@@ -80,19 +101,15 @@ const EditorContent: React.FC = () => {
   const searchParams = useSearchParams();
 
   // Cover State
-  const [coverSettings, setCoverSettings] = useState<CoverSettings>({
-    enabled: true,
-    title: 'RedNote Guide',
-    subtitle: 'How to create viral content in minutes',
-    author: '@RedNoteCreator',
-    variant: 'simple'
-  });
+  const [coverSettings, setCoverSettings] = useState<CoverSettings>(DEFAULT_COVER_SETTINGS);
 
   // --- Pagination Algorithm ---
   const { pages, measureRef, blocks } = useSmartPagination({
     markdown,
     theme: currentTheme,
-    cardHeight: CARD_HEIGHT
+    cardHeight: CARD_HEIGHT,
+    includePageNumber: coverSettings.showPageNumber,
+    paddingYOffset: -CONTENT_PADDING_TOP_BOTTOM_REDUCTION * 2,
   });
 
   const exportTargetIds = React.useMemo(() => {
@@ -129,7 +146,7 @@ const EditorContent: React.FC = () => {
       const doc = getDocumentById(id);
       if (doc) {
         setMarkdown(doc.markdown);
-        setCoverSettings(doc.coverSettings as CoverSettings);
+        setCoverSettings(normalizeCoverSettings(doc.coverSettings as Partial<CoverSettingsStored>));
         const theme = THEMES.find((t) => t.id === doc.themeId);
         if (theme) setCurrentTheme(theme);
         currentDocumentIdRef.current = doc.id;
@@ -164,6 +181,7 @@ const EditorContent: React.FC = () => {
       subtitle: coverSettings.subtitle,
       author: coverSettings.author,
       variant: coverSettings.variant,
+      showPageNumber: coverSettings.showPageNumber,
     };
     latestStateRef.current = {
       markdown,
@@ -255,6 +273,10 @@ const EditorContent: React.FC = () => {
     setIsExporting(true);
     setExportProgress({ done: 0, total });
     try {
+      if (typeof document !== 'undefined' && 'fonts' in document) {
+        await (document as Document & { fonts?: FontFaceSet }).fonts?.ready;
+      }
+
       const zip = new JSZip();
       const failedIndexes: number[] = [];
       let successCount = 0;
@@ -322,6 +344,7 @@ const EditorContent: React.FC = () => {
 
   // Helper styles wrapper
   const themeStyles = getThemeStyles(currentTheme);
+  const contentPadding = `calc(var(--theme-padding) - ${CONTENT_PADDING_TOP_BOTTOM_REDUCTION}px) calc(var(--theme-padding) - ${CONTENT_PADDING_LEFT_RIGHT_REDUCTION}px)`;
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 overflow-hidden text-slate-800">
@@ -459,6 +482,19 @@ const EditorContent: React.FC = () => {
                 </label>
               </div>
 
+              <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
+                <span className="font-medium text-slate-700 text-sm">Show Page Number</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={coverSettings.showPageNumber}
+                    onChange={(e) => setCoverSettings(prev => ({ ...prev, showPageNumber: e.target.checked }))}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                </label>
+              </div>
+
               {coverSettings.enabled && (
                 <>
                   <div className="space-y-4">
@@ -561,7 +597,7 @@ const EditorContent: React.FC = () => {
                 backgroundImage: 'var(--theme-bg-image)', // Apply new background image var
                 backgroundSize: '20px 20px, 100% 100%', // Default size for patterns (dots)
                 backgroundRepeat: 'repeat, no-repeat',
-                padding: 'var(--theme-padding)',
+                padding: contentPadding,
                 borderRadius: 'var(--theme-radius)',
                 border: 'var(--theme-border)',
               }}
@@ -592,11 +628,11 @@ const EditorContent: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Footer / Branding */}
-                <div className="mt-auto pt-4 flex items-center justify-between opacity-40 text-[10px] font-sans border-t" style={{ borderColor: 'var(--theme-border)' }}>
-                  <span>{idx + 1} / {pages.length}</span>
-                  <span className="font-semibold tracking-widest uppercase">RedNote</span>
-                </div>
+                {coverSettings.showPageNumber && (
+                  <div className="mt-auto pt-0.5 opacity-40 text-[9px] leading-none font-sans">
+                    <span>{idx + 1} / {pages.length}</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -621,7 +657,7 @@ const EditorContent: React.FC = () => {
           width: `${CARD_WIDTH}px`,
           ...themeStyles as React.CSSProperties,
           fontFamily: 'var(--theme-font)',
-          padding: 'var(--theme-padding)',
+          padding: contentPadding,
         }}
       >
         {blocks.map(block => (
@@ -668,7 +704,7 @@ const EditorContent: React.FC = () => {
                 backgroundImage: 'var(--theme-bg-image)',
                 backgroundSize: '20px 20px, 100% 100%',
                 backgroundRepeat: 'repeat, no-repeat',
-                padding: 'var(--theme-padding)',
+                padding: contentPadding,
                 borderRadius: 'var(--theme-radius)',
                 border: 'var(--theme-border)',
               }}
@@ -684,13 +720,11 @@ const EditorContent: React.FC = () => {
                   ))}
                 </div>
 
-                <div
-                  className="mt-auto pt-4 flex items-center justify-between opacity-40 text-[10px] font-sans border-t"
-                  style={{ borderColor: 'var(--theme-border)' }}
-                >
-                  <span>{idx + 1} / {pages.length}</span>
-                  <span className="font-semibold tracking-widest uppercase">RedNote</span>
-                </div>
+                {coverSettings.showPageNumber && (
+                  <div className="mt-auto pt-0.5 opacity-40 text-[9px] leading-none font-sans">
+                    <span>{idx + 1} / {pages.length}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

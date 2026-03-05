@@ -10,6 +10,7 @@ export interface CoverSettings {
   subtitle: string;
   author: string;
   variant: CoverVariant;
+  showPageNumber: boolean;
 }
 
 interface CoverCardProps {
