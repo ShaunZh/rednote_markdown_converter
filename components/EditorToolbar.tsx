@@ -17,6 +17,8 @@ import {
   Check,
   X,
   Scissors,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { RICH_TEXT_TEMPLATE } from '../lib/richTextTemplate';
 
@@ -179,6 +181,18 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     });
   };
 
+  const triggerHistoryAction = (action: 'undo' | 'redo') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.focus();
+    try {
+      document.execCommand(action);
+    } catch {
+      // Ignore unsupported browsers silently.
+    }
+  };
+
   const handleCopySyntax = async () => {
     try {
       await navigator.clipboard.writeText(RICH_TEXT_TEMPLATE);
@@ -192,6 +206,17 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   return (
     <>
       <div className="flex items-center gap-1 p-2 border-b border-neutral-200 bg-neutral-50 overflow-x-auto no-scrollbar shrink-0">
+        <ToolbarButton
+          icon={<Undo2 size={16} />}
+          onClick={() => triggerHistoryAction('undo')}
+          label="Undo"
+        />
+        <ToolbarButton
+          icon={<Redo2 size={16} />}
+          onClick={() => triggerHistoryAction('redo')}
+          label="Redo"
+        />
+        <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
           icon={<Bold size={16} />}
           onClick={() => insertText('**', '**')}
