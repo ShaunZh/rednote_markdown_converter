@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Download, PenTool, Layout } from 'lucide-react';
+import { Download, PenTool, Layout, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
@@ -31,6 +31,9 @@ import { IPhoneHeader } from '../../components/ThemeHeaders';
 const CARD_WIDTH = 375;
 const CARD_HEIGHT = 500;
 const EXPORT_SCALE = 3;
+const EXPORT_TIMEOUT_MS = 25000;
+
+type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' | 'error';
 
 
 
@@ -45,11 +48,18 @@ const EditorContent: React.FC = () => {
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
+  const [exportNotice, setExportNotice] = useState('');
+  const [failedPages, setFailedPages] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<'editor' | 'cover'>('editor');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [excludedExportIds, setExcludedExportIds] = useState<string[]>([]);
 
   // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const exportContainerRef = useRef<HTMLDivElement>(null);
+  const cancelExportRef = useRef(false);
   const currentDocumentIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasHydratedRef = useRef(false);
@@ -83,6 +93,31 @@ const EditorContent: React.FC = () => {
     theme: currentTheme,
     cardHeight: CARD_HEIGHT
   });
+
+  const exportTargetIds = React.useMemo(() => {
+    const ids: string[] = [];
+    if (coverSettings.enabled) ids.push('cover');
+    for (let i = 0; i < pages.length; i++) ids.push(`page-${i}`);
+    return ids;
+  }, [coverSettings.enabled, pages.length]);
+
+  useEffect(() => {
+    setExcludedExportIds((prev) => prev.filter((id) => exportTargetIds.includes(id)));
+  }, [exportTargetIds]);
+
+  const selectedExportIds = React.useMemo(() => {
+    const excluded = new Set(excludedExportIds);
+    return exportTargetIds.filter((id) => !excluded.has(id));
+  }, [excludedExportIds, exportTargetIds]);
+
+  const toggleExportSelection = (id: string) => {
+    setExcludedExportIds((prev) => (
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    ));
+  };
+
+  const selectAllExportTargets = () => setExcludedExportIds([]);
+  const clearAllExportTargets = () => setExcludedExportIds(exportTargetIds);
 
   // --- Load by ?id= (once) ---
   useEffect(() => {
@@ -157,39 +192,130 @@ const EditorContent: React.FC = () => {
 
   // --- Export Logic ---
   const yieldToMain = () => new Promise<void>((r) => setTimeout(r, 0));
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) =>
+    new Promise<T>((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        reject(new Error(`${label} 超时`));
+      }, ms);
+      promise
+        .then((v) => {
+          window.clearTimeout(timer);
+          resolve(v);
+        })
+        .catch((err) => {
+          window.clearTimeout(timer);
+          reject(err);
+        });
+    });
+
+  const requestCancelExport = () => {
+    if (!isExporting) return;
+    cancelExportRef.current = true;
+    setExportStatus('canceling');
+    setExportNotice('正在取消，当前图片处理完成后将停止。');
+  };
+
+  const closeExportModal = () => {
+    if (isExporting) {
+      setIsExportModalOpen(false);
+      return;
+    }
+    setIsExportModalOpen(false);
+    setExportStatus('idle');
+    setExportProgress(null);
+    setExportNotice('');
+    setFailedPages([]);
+  };
 
   const handleExport = async () => {
-    const pageElements = Array.from(document.querySelectorAll('.preview-card'));
-    const total = pageElements.length;
-    if (total === 0) return;
+    if (isExporting) return;
 
+    const exportContainer = exportContainerRef.current;
+    if (!exportContainer) return;
+
+    const selectedSet = new Set(selectedExportIds);
+    const pageElements = Array.from(
+      exportContainer.querySelectorAll<HTMLElement>('.export-card')
+    ).filter((el) => {
+      const id = el.dataset.exportId;
+      return typeof id === 'string' && selectedSet.has(id);
+    });
+    const total = pageElements.length;
+    if (total === 0) {
+      alert('请先在预览区勾选需要导出的页面。');
+      return;
+    }
+
+    cancelExportRef.current = false;
+    setFailedPages([]);
+    setExportNotice('');
+    setExportStatus('running');
+    setIsExportModalOpen(true);
     setIsExporting(true);
     setExportProgress({ done: 0, total });
     try {
       const zip = new JSZip();
+      const failedIndexes: number[] = [];
+      let successCount = 0;
 
       for (let i = 0; i < pageElements.length; i++) {
+        if (cancelExportRef.current) break;
+
         const el = pageElements[i] as HTMLElement;
-        const dataUrl = await toPng(el, {
-          pixelRatio: EXPORT_SCALE,
-          cacheBust: true,
-          skipAutoScale: true,
-        });
-        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-        const fileName = `slide-${String(i).padStart(2, '0')}.png`;
-        zip.file(fileName, base64Data, { base64: true });
-        setExportProgress({ done: i + 1, total });
+        try {
+          const dataUrl = await withTimeout(
+            toPng(el, {
+              pixelRatio: EXPORT_SCALE,
+              cacheBust: true,
+              skipAutoScale: true,
+            }),
+            EXPORT_TIMEOUT_MS,
+            `第 ${i + 1} 张图片导出`
+          );
+          const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+          const fileName = `slide-${String(i).padStart(2, '0')}.png`;
+          zip.file(fileName, base64Data, { base64: true });
+          successCount += 1;
+          setExportProgress({ done: successCount, total });
+        } catch (err) {
+          console.error(`Export page ${i + 1} failed`, err);
+          failedIndexes.push(i + 1);
+        }
         await yieldToMain();
       }
 
-      const content = await zip.generateAsync({ type: "blob" });
-      FileSaver.saveAs(content, "rednote-slides.zip");
+      const wasCanceled = cancelExportRef.current;
+      if (successCount > 0) {
+        const content = await zip.generateAsync({ type: "blob" });
+        const zipName = wasCanceled ? "rednote-slides-partial.zip" : "rednote-slides.zip";
+        FileSaver.saveAs(content, zipName);
+      }
+
+      setFailedPages(failedIndexes);
+      if (wasCanceled) {
+        setExportStatus('canceled');
+        setExportNotice(
+          successCount > 0
+            ? `已取消导出，已完成 ${successCount}/${total} 张，并已下载部分结果。`
+            : '已取消导出，未生成可下载图片。'
+        );
+      } else if (successCount === 0) {
+        setExportStatus('error');
+        setExportNotice('导出失败，未生成任何图片。');
+      } else if (failedIndexes.length > 0) {
+        setExportStatus('completed');
+        setExportNotice(`导出完成：成功 ${successCount}/${total} 张，失败 ${failedIndexes.length} 张。`);
+      } else {
+        setExportStatus('completed');
+        setExportNotice('导出完成，图片已下载。');
+      }
     } catch (err) {
       console.error("Export failed", err);
-      alert("Export failed. If using external resources, they might be blocked by CORS.");
+      setExportStatus('error');
+      setExportNotice('导出出现异常，请重试或降低内容复杂度后再导出。');
     } finally {
       setIsExporting(false);
-      setExportProgress(null);
+      cancelExportRef.current = false;
     }
   };
 
@@ -209,6 +335,25 @@ const EditorContent: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
+          {!isExporting && exportTargetIds.length > 0 && (
+            <div className="hidden md:flex items-center gap-2 text-xs text-slate-600">
+              <span className="tabular-nums">已选 {selectedExportIds.length}/{exportTargetIds.length}</span>
+              <button
+                type="button"
+                onClick={selectAllExportTargets}
+                className="px-2 py-1 rounded border border-slate-300 hover:bg-slate-100"
+              >
+                全选
+              </button>
+              <button
+                type="button"
+                onClick={clearAllExportTargets}
+                className="px-2 py-1 rounded border border-slate-300 hover:bg-slate-100"
+              >
+                清空
+              </button>
+            </div>
+          )}
           {exportProgress && (
             <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500">
               <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -219,6 +364,15 @@ const EditorContent: React.FC = () => {
               </div>
               <span className="tabular-nums">{exportProgress.done} / {exportProgress.total}</span>
             </div>
+          )}
+          {isExporting && !isExportModalOpen && (
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="hidden sm:inline-flex items-center rounded-full border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
+            >
+              查看导出进度
+            </button>
           )}
           <button
             onClick={handleExport}
@@ -365,15 +519,31 @@ const EditorContent: React.FC = () => {
         </div>
 
         {/* 2. Middle Column: Live Preview */}
-        <div className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner">
+        <div
+          className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner"
+        >
 
           {/* Render Cover Card First */}
-          <CoverCard
-            settings={coverSettings}
-            theme={currentTheme}
-            width={CARD_WIDTH}
-            height={CARD_HEIGHT}
-          />
+          {coverSettings.enabled && (
+            <div className="relative">
+              <CoverCard
+                settings={coverSettings}
+                theme={currentTheme}
+                width={CARD_WIDTH}
+                height={CARD_HEIGHT}
+              />
+              <label className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 accent-slate-800"
+                  checked={selectedExportIds.includes('cover')}
+                  onChange={() => toggleExportSelection('cover')}
+                  disabled={isExporting}
+                />
+                封面
+              </label>
+            </div>
+          )}
 
           {/* Rendering Pages */}
           {pages.map((pageContent, idx) => (
@@ -398,6 +568,16 @@ const EditorContent: React.FC = () => {
 
 
               <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
+                <label className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-slate-800"
+                    checked={selectedExportIds.includes(`page-${idx}`)}
+                    onChange={() => toggleExportSelection(`page-${idx}`)}
+                    disabled={isExporting}
+                  />
+                  第 {idx + 1} 页
+                </label>
 
                 {/* Optional Theme Header */}
                 {currentTheme.container.headerStyle === 'iphone' && (
@@ -457,6 +637,162 @@ const EditorContent: React.FC = () => {
           setIsImportModalOpen(false);
         }}
       />
+
+      {/* Dedicated offscreen export source to avoid preview DOM interference */}
+      <div
+        ref={exportContainerRef}
+        className="fixed -left-[99999px] top-0 -z-50 opacity-0 pointer-events-none"
+        aria-hidden="true"
+      >
+        {coverSettings.enabled && (
+          <div className="export-card" data-export-id="cover">
+            <CoverCard
+              settings={coverSettings}
+              theme={currentTheme}
+              width={CARD_WIDTH}
+              height={CARD_HEIGHT}
+            />
+          </div>
+        )}
+
+        {pages.map((pageContent, idx) => (
+          <div key={`export-page-${idx}`} className="export-card" data-export-id={`page-${idx}`}>
+            <div
+              className="shrink-0 relative overflow-hidden"
+              style={{
+                width: `${CARD_WIDTH}px`,
+                height: `${CARD_HEIGHT}px`,
+                ...themeStyles as React.CSSProperties,
+                background: 'var(--theme-bg)',
+                backgroundImage: 'var(--theme-bg-image)',
+                backgroundSize: '20px 20px, 100% 100%',
+                backgroundRepeat: 'repeat, no-repeat',
+                padding: 'var(--theme-padding)',
+                borderRadius: 'var(--theme-radius)',
+                border: 'var(--theme-border)',
+              }}
+            >
+              <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
+                {currentTheme.container.headerStyle === 'iphone' && (
+                  <IPhoneHeader />
+                )}
+
+                <div className="flex-1">
+                  {pageContent.map((block) => (
+                    <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
+                  ))}
+                </div>
+
+                <div
+                  className="mt-auto pt-4 flex items-center justify-between opacity-40 text-[10px] font-sans border-t"
+                  style={{ borderColor: 'var(--theme-border)' }}
+                >
+                  <span>{idx + 1} / {pages.length}</span>
+                  <span className="font-semibold tracking-widest uppercase">RedNote</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Export Progress Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/45 p-4 flex items-center justify-center">
+          <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
+              <h3 className="text-base font-semibold text-slate-800">导出图片</h3>
+              {!isExporting && (
+                <button
+                  type="button"
+                  onClick={closeExportModal}
+                  className="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-neutral-100 transition-colors"
+                  title="关闭"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-slate-600">
+                {exportStatus === 'running' && '正在生成图片，请耐心等待。'}
+                {exportStatus === 'canceling' && '正在取消导出，当前图片完成后会停止。'}
+                {exportStatus === 'completed' && '导出已完成。'}
+                {exportStatus === 'canceled' && '导出已取消。'}
+                {exportStatus === 'error' && '导出发生异常。'}
+              </p>
+
+              {exportProgress && (
+                <div>
+                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div
+                      className="h-full bg-slate-700 transition-all duration-200"
+                      style={{ width: `${(exportProgress.done / exportProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500 tabular-nums">
+                    {exportProgress.done} / {exportProgress.total}
+                  </p>
+                </div>
+              )}
+
+              {failedPages.length > 0 && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  失败页码：{failedPages.join(', ')}
+                </p>
+              )}
+
+              {exportNotice && (
+                <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  {exportNotice}
+                </p>
+              )}
+            </div>
+
+            <div className="px-5 pb-5 flex items-center justify-end gap-2">
+              {isExporting && exportStatus !== 'canceling' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsExportModalOpen(false)}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 text-slate-600 hover:bg-neutral-100 transition-colors"
+                  >
+                    后台继续
+                  </button>
+                  <button
+                    type="button"
+                    onClick={requestCancelExport}
+                    className="px-3 py-1.5 text-sm rounded-lg bg-[#d43838] text-white hover:bg-[#be2e2e] transition-colors"
+                  >
+                    取消导出
+                  </button>
+                </>
+              )}
+
+              {isExporting && exportStatus === 'canceling' && (
+                <button
+                  type="button"
+                  disabled
+                  className="px-3 py-1.5 text-sm rounded-lg bg-slate-300 text-white cursor-not-allowed"
+                >
+                  正在取消...
+                </button>
+              )}
+
+              {!isExporting && (
+                <button
+                  type="button"
+                  onClick={closeExportModal}
+                  className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                >
+                  关闭
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
