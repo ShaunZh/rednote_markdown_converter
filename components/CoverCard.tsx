@@ -25,6 +25,9 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
 
   const { title, subtitle, author, variant } = settings;
   const styles = getThemeStyles(theme);
+  const titleText = title.trim();
+  const hasCjk = /[\u3400-\u9fff]/.test(titleText);
+  const titleLength = titleText.length;
 
   const containerStyle = {
     width: `${width}px`,
@@ -53,14 +56,21 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
   );
 
   if (variant === 'simple') {
+    const simpleTitleClass = cn(
+      "mb-5 font-semibold tracking-[-0.01em] break-words [display:-webkit-box] [-webkit-box-orient:vertical] overflow-hidden",
+      hasCjk ? "text-[34px] leading-[1.24]" : "text-[36px] leading-[1.16]",
+      titleLength > 30 && (hasCjk ? "text-[30px] leading-[1.28]" : "text-[32px] leading-[1.2]"),
+      "[-webkit-line-clamp:4]"
+    );
+
     return (
       <Wrapper>
         <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
-          <div className="mb-8 w-12 h-1 opacity-20 rounded-full" style={{ backgroundColor: 'var(--theme-text-color)' }} />
-          <h1 className="text-4xl font-bold mb-6 leading-tight" style={{ color: 'var(--theme-title-color)' }}>
+          <div className="mb-7 w-10 h-1 opacity-20 rounded-full" style={{ backgroundColor: 'var(--theme-text-color)' }} />
+          <h1 className={simpleTitleClass} style={{ color: 'var(--theme-title-color)' }}>
             {title || "在这里填写标题"}
           </h1>
-          <p className="text-lg opacity-75 mb-12 max-w-[85%] leading-relaxed">
+          <p className="text-base opacity-72 mb-12 max-w-[85%] leading-relaxed [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical] overflow-hidden">
             {subtitle || "写一句吸引读者的副标题"}
           </p>
           <div className="mt-auto opacity-50 font-medium text-xs tracking-widest uppercase flex items-center gap-2">
@@ -72,27 +82,34 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
   }
 
   if (variant === 'modern') {
+    const modernTitleClass = cn(
+      "mb-5 font-semibold tracking-[-0.015em] break-words [display:-webkit-box] [-webkit-box-orient:vertical] overflow-hidden",
+      hasCjk ? "text-[32px] leading-[1.22]" : "text-[38px] leading-[1.12]",
+      titleLength > 34 && (hasCjk ? "text-[28px] leading-[1.27]" : "text-[34px] leading-[1.16]"),
+      "[-webkit-line-clamp:5]"
+    );
+
     return (
       <Wrapper>
-        <div className="w-full h-full flex flex-col p-10 relative">
+        <div className="w-full h-full flex flex-col p-9 relative">
           {/* Decorative shapes using accent/text color */}
-          <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.05] rounded-bl-[100px] pointer-events-none" style={{ backgroundColor: 'var(--theme-title-color)' }} />
-          <div className="absolute bottom-0 left-0 w-32 h-32 opacity-[0.05] rounded-tr-[100px] pointer-events-none" style={{ backgroundColor: 'var(--theme-title-color)' }} />
+          <div className="absolute top-0 right-0 w-36 h-36 opacity-[0.04] rounded-bl-[100px] pointer-events-none" style={{ backgroundColor: 'var(--theme-title-color)' }} />
+          <div className="absolute bottom-0 left-0 w-28 h-28 opacity-[0.04] rounded-tr-[100px] pointer-events-none" style={{ backgroundColor: 'var(--theme-title-color)' }} />
 
-          <div className="mt-auto mb-8 relative z-10">
+          <div className="mt-auto mb-6 relative z-10">
             {author && (
               <span 
-                className="inline-block px-3 py-1 mb-6 text-[10px] font-bold uppercase tracking-widest border rounded-full opacity-60"
+                className="inline-block px-3 py-1 mb-5 text-[11px] font-medium tracking-[0.12em] border rounded-full opacity-65"
                 style={{ borderColor: 'var(--theme-accent)', color: 'var(--theme-accent)' }}
               >
                 {author}
               </span>
             )}
-            <h1 className="text-5xl font-black leading-[1.1] mb-6 tracking-tight" style={{ color: 'var(--theme-title-color)' }}>
+            <h1 className={modernTitleClass} style={{ color: 'var(--theme-title-color)' }}>
               {title || "现代风标题"}
             </h1>
-            <div className="w-16 h-1.5 mb-6" style={{ backgroundColor: 'var(--theme-accent)' }} />
-            <p className="text-xl opacity-80 font-light leading-snug">
+            <div className="w-12 h-1 mb-5 rounded-full" style={{ backgroundColor: 'var(--theme-accent)' }} />
+            <p className="text-[15px] opacity-75 leading-relaxed [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical] overflow-hidden">
               {subtitle}
             </p>
           </div>
@@ -118,7 +135,7 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
           </div>
 
           <div className="my-auto">
-            <h1 className="text-4xl font-serif italic mb-6" style={{ color: 'var(--theme-title-color)' }}>
+            <h1 className="text-[34px] leading-[1.2] font-serif italic mb-5 break-words [display:-webkit-box] [-webkit-line-clamp:4] [-webkit-box-orient:vertical] overflow-hidden" style={{ color: 'var(--theme-title-color)' }}>
               {title || "封面标题"}
             </h1>
             {subtitle && (
