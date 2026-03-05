@@ -7,12 +7,12 @@ export function SiteHeader() {
   return (
     <header className="h-16 border-b border-[#e7e7e7] bg-white/90 backdrop-blur">
       <div className="h-full w-full px-6 flex items-center gap-4">
-        <div className="flex items-center gap-2 mr-2">
+        <Link href="/" className="flex items-center gap-2 mr-2 hover:opacity-90">
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
             R
           </div>
           <span className="text-lg font-bold tracking-tight">RedNote Converter</span>
-        </div>
+        </Link>
 
         <Link
           href="/draft"
