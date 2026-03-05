@@ -30,7 +30,8 @@ import { IPhoneHeader } from '../../components/ThemeHeaders';
 // --- Constants ---
 const CARD_WIDTH = 375;
 const CARD_HEIGHT = 500;
-const EXPORT_SCALE = 3;
+// 375x500 * 2.88 = 1080x1440
+const EXPORT_SCALE = 2.88;
 const EXPORT_TIMEOUT_MS = 25000;
 
 type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' | 'error';
