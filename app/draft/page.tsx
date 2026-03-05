@@ -569,7 +569,7 @@ const EditorContent: React.FC = () => {
                 width={CARD_WIDTH}
                 height={CARD_HEIGHT}
               />
-              <label className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
+              <label className="absolute top-1 right-1 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
                 <input
                   type="checkbox"
                   className="h-3.5 w-3.5 accent-slate-800"
@@ -605,7 +605,7 @@ const EditorContent: React.FC = () => {
 
 
               <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
-                <label className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
+                <label className="absolute top-1 right-1 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
                   <input
                     type="checkbox"
                     className="h-3.5 w-3.5 accent-slate-800"
