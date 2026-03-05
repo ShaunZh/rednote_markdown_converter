@@ -114,15 +114,30 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
         {...props}
       />
     ),
-    ul: ({ node, ...props }: any) => (
-      <ul className="list-disc pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]" {...props} />
+    ul: ({ node, className, ...props }: any) => {
+      const isTaskList = typeof className === 'string' && className.includes('contains-task-list');
+      return (
+        <ul
+          className={cn(
+            isTaskList
+              ? "list-disc pl-[18px] mb-2.5 space-y-1"
+              : "list-disc pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]",
+            className
+          )}
+          {...props}
+        />
+      );
+    },
+    ol: ({ node, className, ...props }: any) => (
+      <ol className={cn("list-decimal pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]", className)} {...props} />
     ),
-    ol: ({ node, ...props }: any) => (
-      <ol className="list-decimal pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]" {...props} />
-    ),
-    li: ({ node, ...props }: any) => (
+    li: ({ node, className, ...props }: any) => (
       <li
-        className="pl-1"
+        className={cn(
+          "pl-1",
+          typeof className === 'string' && className.includes('task-list-item') && "pl-0",
+          className
+        )}
         style={{
           color: 'var(--theme-text-color)',
           lineHeight: contentLineHeight,
@@ -130,6 +145,20 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
         {...props}
       />
     ),
+    input: ({ node, type, className, ...props }: any) => {
+      if (type === 'checkbox') {
+        return (
+          <input
+            type="checkbox"
+            className={cn("mr-2 align-[-1px]", className)}
+            disabled
+            {...props}
+            readOnly
+          />
+        );
+      }
+      return <input type={type} className={className} {...props} />;
+    },
     blockquote: ({ node, ...props }: any) => (
       <blockquote
         className={cn(

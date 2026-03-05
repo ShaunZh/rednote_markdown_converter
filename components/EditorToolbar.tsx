@@ -16,6 +16,7 @@ import {
   Copy,
   Check,
   X,
+  Scissors,
 } from 'lucide-react';
 import { RICH_TEXT_TEMPLATE } from '../lib/richTextTemplate';
 
@@ -31,6 +32,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   textareaRef,
   setMarkdown,
 }) => {
+  const PAGE_BREAK_MARKER = '<!-- pagebreak -->';
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSyntaxModalOpen, setIsSyntaxModalOpen] = useState(false);
@@ -142,6 +144,30 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     });
   };
 
+  const insertPageBreakAtCursor = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const previousText = textarea.value;
+    const before = previousText.substring(0, start);
+    const after = previousText.substring(end);
+
+    const needsLeadingNewline = before.length > 0 && !before.endsWith('\n');
+    const needsTrailingNewline = after.length > 0 && !after.startsWith('\n');
+    const insertion = `${needsLeadingNewline ? '\n' : ''}${PAGE_BREAK_MARKER}${needsTrailingNewline ? '\n' : ''}`;
+
+    const newText = before + insertion + after;
+    setMarkdown(newText);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = before.length + insertion.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
   const handleUseTemplate = () => {
     setMarkdown(RICH_TEXT_TEMPLATE);
     setIsTemplateConfirmOpen(false);
@@ -213,6 +239,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           icon={<Minus size={16} />}
           onClick={() => insertText('\n---\n')}
           label="Divider"
+        />
+        <ToolbarButton
+          icon={<Scissors size={16} />}
+          onClick={insertPageBreakAtCursor}
+          label="手动分页"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton

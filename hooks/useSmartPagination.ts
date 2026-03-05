@@ -4,7 +4,7 @@ import { ThemeConfig } from '../lib/themeConfig';
 export interface Block {
     id: string;
     content: string;
-    type: 'code' | 'standard' | 'image';
+    type: 'code' | 'standard' | 'image' | 'pagebreak';
 }
 
 const FOOTER_RESERVED_HEIGHT = 8;
@@ -13,6 +13,7 @@ const SPLIT_SAFETY_RATIO = 0.97;
 
 // --- Helper: Split Markdown into Blocks ---
 const IMAGE_LINE_RE = /^!\[.*?\]\(.*?\)\s*$/;
+const PAGE_BREAK_RE = /^<!--\s*pagebreak\s*-->$/i;
 
 const splitMarkdownIntoBlocks = (markdown: string): Block[] => {
     const blocks: Block[] = [];
@@ -43,6 +44,13 @@ const splitMarkdownIntoBlocks = (markdown: string): Block[] => {
                 flush('code');
                 inCodeBlock = false;
             }
+        } else if (!inCodeBlock && PAGE_BREAK_RE.test(line.trim())) {
+            flush('standard');
+            blocks.push({
+                id: `block-${blockIdCounter++}`,
+                content: '',
+                type: 'pagebreak',
+            });
         } else if (!inCodeBlock && IMAGE_LINE_RE.test(line.trim())) {
             // Flush any preceding standard content, then flush image as its own block
             flush('standard');
@@ -128,6 +136,16 @@ export const useSmartPagination = ({
             for (let i = 0; i < blockNodes.length; i++) {
                 const node = blockNodes[i];
                 const block = blocks[i];
+
+                // Manual pagebreak has highest priority: force start a new page.
+                if (block.type === 'pagebreak') {
+                    if (currentPage.length > 0) {
+                        newPages.push(currentPage);
+                        currentPage = [];
+                    }
+                    pageStartOffset = i + 1 < blockNodes.length ? blockNodes[i + 1].offsetTop : pageStartOffset;
+                    continue;
+                }
 
                 // Calculate the bottom position of this node relative to the container
                 const nodeBottom = node.offsetTop + node.offsetHeight;
@@ -241,6 +259,7 @@ export const useSmartPagination = ({
 const splitBlock = (block: Block, ratio: number): [Block, Block] | null => {
     // Safety check: Don't split if too small or already split too much (prevent infinite recursion)
     if (block.content.length < 10) return null;
+    if (block.type === 'pagebreak' || block.type === 'image') return null;
 
     if (block.type === 'code') {
         const lines = block.content.split('\n');
