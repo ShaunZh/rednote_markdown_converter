@@ -158,49 +158,7 @@ export const THEMES: ThemeConfig[] = [
     },
   },
 
-  // 4. Simple Grid (Note Paper)
-  {
-    id: 'grid',
-    name: '简约网格',
-    type: 'free',
-    container: {
-      // Linear gradient grid pattern
-      background: `
-        linear-gradient(#e5e7eb 1px, transparent 1px) 0 0 / 24px 24px, 
-        linear-gradient(90deg, #e5e7eb 1px, transparent 1px) 0 0 / 24px 24px 
-        #ffffff
-      `,
-      padding: '32px',
-      radius: '0px',
-      shadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-      border: '1px solid #e5e7eb',
-    },
-    typography: {
-      fontFamily: '"Inter", sans-serif',
-      baseFontSize: '16px',
-      lineHeight: '1.6',
-      titleColor: '#2563eb', // Blue 600
-      textColor: '#374151', // Gray 700
-    },
-    palette: {
-      accent: '#3b82f6',
-      secondary: '#93c5fd',
-    },
-    components: {
-      codeBlock: {
-        style: 'simple',
-        background: '#f1f5f9',
-        textColor: '#0f172a',
-      },
-      blockquote: {
-        style: 'bar',
-        color: '#3b82f6',
-        background: '#eff6ff',
-      },
-    },
-  },
-
-  // 5. Vintage Paper (Retro)
+  // 4. Vintage Paper (Retro)
   {
     id: 'vintage',
     name: '复古纸张',
@@ -237,45 +195,7 @@ export const THEMES: ThemeConfig[] = [
     },
   },
 
-  // 6. Modern Gradient
-  {
-    id: 'modern',
-    name: '现代渐变',
-    type: 'pro',
-    container: {
-      // Soft mesh gradient: Pink -> Blue
-      background: 'linear-gradient(135deg, #ffe6fa 0%, #e3f2fd 100%)',
-      padding: '32px',
-      radius: '16px',
-      shadow: '0 10px 30px -5px rgba(255, 105, 180, 0.15)',
-      border: '1px solid rgba(255,255,255,0.6)',
-    },
-    typography: {
-      fontFamily: '"Inter", sans-serif',
-      baseFontSize: '16px',
-      lineHeight: '1.7',
-      titleColor: '#1e293b', // Dark Slate
-      textColor: '#334155', // Slate
-    },
-    palette: {
-      accent: '#ec4899', // Pink
-      secondary: '#ffffff',
-    },
-    components: {
-      codeBlock: {
-        style: 'simple',
-        background: 'rgba(255,255,255,0.6)', // Glassmorphic
-        textColor: '#0f172a',
-      },
-      blockquote: {
-        style: 'card',
-        color: '#ec4899',
-        background: 'rgba(255,255,255,0.5)',
-      },
-    },
-  },
-
-  // 7. iPhone Memo (Dotted Style)
+  // 5. iPhone Memo (Dotted Style)
   {
     id: 'memo',
     name: 'iPhone 备忘录',
@@ -315,44 +235,6 @@ export const THEMES: ThemeConfig[] = [
     },
   },
 
-  // 8. Cute Paw (Image Background Example)
-  {
-    id: 'cute-paw',
-    name: '可爱爪印',
-    type: 'pro',
-    container: {
-      background: '#eef2ff', // Fallback color
-      // Example decorative background image
-      backgroundImage: 'radial-gradient(circle at top right, #fb7185 0%, transparent 20%), radial-gradient(circle at bottom left, #60a5fa 0%, transparent 20%)',
-      padding: '32px',
-      radius: '24px',
-      shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-      border: '4px solid #ffffff',
-    },
-    typography: {
-      fontFamily: '"Nunito", sans-serif', // Rounded font
-      baseFontSize: '16px',
-      lineHeight: '1.7',
-      titleColor: '#3730a3', // Indigo 800
-      textColor: '#4f46e5', // Indigo 600
-    },
-    palette: {
-      accent: '#f43f5e', // Rose 500
-      secondary: '#c7d2fe',
-    },
-    components: {
-      codeBlock: {
-        style: 'simple', // 'card' was invalid, changed to 'simple'
-        background: '#ffffff',
-        textColor: '#3730a3',
-      },
-      blockquote: {
-        style: 'card',
-        color: '#f43f5e',
-        background: '#ffffff',
-      },
-    },
-  },
 ];
 
 // --- 3. Helper Function ---
