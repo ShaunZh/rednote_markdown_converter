@@ -41,9 +41,9 @@ type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' 
 
 const DEFAULT_COVER_SETTINGS: CoverSettings = {
   enabled: true,
-  title: 'RedNote Guide',
-  subtitle: 'How to create viral content in minutes',
-  author: '@RedNoteCreator',
+  title: '小红书创作指南',
+  subtitle: '几分钟做出更容易传播的内容',
+  author: '@小红书创作者',
   variant: 'simple',
   showPageNumber: true,
 };
@@ -355,7 +355,7 @@ const EditorContent: React.FC = () => {
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
             R
           </div>
-          <h1 className="font-bold text-xl tracking-tight hidden sm:block">RedNote Converter</h1>
+          <h1 className="font-bold text-xl tracking-tight hidden sm:block">小红书 Markdown 转图器</h1>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -404,11 +404,11 @@ const EditorContent: React.FC = () => {
             className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none transform active:scale-95"
           >
             {isExporting ? (
-              <span>{exportProgress ? `Exporting ${exportProgress.done}/${exportProgress.total}...` : 'Preparing...'}</span>
+              <span>{exportProgress ? `导出中 ${exportProgress.done}/${exportProgress.total}...` : '正在准备...'}</span>
             ) : (
               <>
                 <Download size={18} />
-                <span>Export Images</span>
+                <span>导出图片</span>
               </>
             )}
           </button>
@@ -431,7 +431,7 @@ const EditorContent: React.FC = () => {
                   : "border-transparent text-slate-500 hover:bg-slate-50"
               )}
             >
-              <PenTool size={16} /> Editor
+              <PenTool size={16} /> 编辑
             </button>
             <button
               onClick={() => setActiveTab('cover')}
@@ -442,7 +442,7 @@ const EditorContent: React.FC = () => {
                   : "border-transparent text-slate-500 hover:bg-slate-50"
               )}
             >
-              <Layout size={16} /> Cover
+              <Layout size={16} /> 封面
             </button>
           </div>
 
@@ -459,7 +459,7 @@ const EditorContent: React.FC = () => {
                 className="flex-1 w-full p-6 resize-none focus:outline-none font-mono text-sm leading-relaxed text-slate-700 bg-slate-50/30"
                 value={markdown}
                 onChange={(e) => setMarkdown(e.target.value)}
-                placeholder="Type your markdown here..."
+                placeholder="在这里输入 Markdown 内容..."
                 spellCheck={false}
               />
             </div>
@@ -470,7 +470,7 @@ const EditorContent: React.FC = () => {
             <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto bg-neutral-50/50">
               {/* Toggle Enable */}
               <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
-                <span className="font-medium text-slate-700 text-sm">Enable Cover Page</span>
+                <span className="font-medium text-slate-700 text-sm">启用封面页</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -483,7 +483,7 @@ const EditorContent: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
-                <span className="font-medium text-slate-700 text-sm">Show Page Number</span>
+                <span className="font-medium text-slate-700 text-sm">显示页码</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -499,39 +499,39 @@ const EditorContent: React.FC = () => {
                 <>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Title</label>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">标题</label>
                       <input
                         type="text"
                         value={coverSettings.title}
                         onChange={(e) => setCoverSettings(prev => ({ ...prev, title: e.target.value }))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
-                        placeholder="Main Headline"
+                        placeholder="输入主标题"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Subtitle</label>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">副标题</label>
                       <textarea
                         rows={2}
                         value={coverSettings.subtitle}
                         onChange={(e) => setCoverSettings(prev => ({ ...prev, subtitle: e.target.value }))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm resize-none"
-                        placeholder="Subtitle or description"
+                        placeholder="输入副标题或说明"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Author Name</label>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">作者名称</label>
                       <input
                         type="text"
                         value={coverSettings.author}
                         onChange={(e) => setCoverSettings(prev => ({ ...prev, author: e.target.value }))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
-                        placeholder="@username"
+                        placeholder="@你的昵称"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Cover Layout</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">封面布局</label>
                     <div className="grid grid-cols-3 gap-2">
                       {(['simple', 'modern', 'outline'] as const).map((variant) => (
                         <button
@@ -544,7 +544,7 @@ const EditorContent: React.FC = () => {
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                           )}
                         >
-                          {variant}
+                          {variant === 'simple' ? '简约' : variant === 'modern' ? '现代' : '描边'}
                         </button>
                       ))}
                     </div>

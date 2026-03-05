@@ -13,13 +13,13 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch (e) {
-      return NextResponse.json({ error: 'Invalid JSON body in request.' }, { status: 400 });
+      return NextResponse.json({ error: '请求体 JSON 格式无效。' }, { status: 400 });
     }
     
     let { url } = body;
 
     if (!url) {
-      return NextResponse.json({ error: 'URL is required.' }, { status: 400 });
+      return NextResponse.json({ error: '链接地址不能为空。' }, { status: 400 });
     }
 
     step = 'SANITIZE_URL';
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       // Remove all whitespace/newlines
       url = url.replace(/\s/g, '');
     } else {
-       return NextResponse.json({ error: 'URL must be a string.' }, { status: 400 });
+       return NextResponse.json({ error: '链接地址必须是字符串。' }, { status: 400 });
     }
 
     // Protocol Auto-Correction
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       url = parsedUrl.href; 
       debugUrl = url;
     } catch (e) {
-      return NextResponse.json({ error: `Invalid URL Format: "${url}". Please check for typos.` }, { status: 400 });
+      return NextResponse.json({ error: `链接格式无效："${url}"，请检查是否输入有误。` }, { status: 400 });
     }
 
     step = 'FETCH_HTML';
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
             timeout: 15000
         });
     } catch (axiosError: any) {
-        return NextResponse.json({ error: `Network Error (${axiosError.code}): Failed to reach WeChat. ${axiosError.message}` }, { status: 502 });
+        return NextResponse.json({ error: `网络错误（${axiosError.code}）：无法访问微信文章。${axiosError.message}` }, { status: 502 });
     }
 
     step = 'LOAD_HTML';
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     const $content = $('#js_content');
     if ($content.length === 0) {
-        return NextResponse.json({ error: 'Content not found (missing #js_content). The article might be deleted or requires CAPTCHA.' }, { status: 403 });
+        return NextResponse.json({ error: '未找到正文内容（缺少 #js_content），文章可能已删除或需要验证码。' }, { status: 403 });
     }
 
     step = 'CLEAN_DOM';
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     });
 
     step = 'EXTRACT_META';
-    const title = $('meta[property="og:title"]').attr('content') || $('h1').text().trim() || 'Imported Article';
+    const title = $('meta[property="og:title"]').attr('content') || $('h1').text().trim() || '导入文章';
     const contentHtml = $content.html() || '';
 
     step = 'CONVERT_MARKDOWN';
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     const safeErrorMessage = error instanceof Error ? error.message : String(error);
     
     return NextResponse.json({ 
-      error: `Server Error at step "${step}": ${safeErrorMessage}.` 
+      error: `服务端在步骤「${step}」发生错误：${safeErrorMessage}。` 
     }, { status: 500 });
   }
 }

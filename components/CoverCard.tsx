@@ -58,10 +58,10 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
         <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
           <div className="mb-8 w-12 h-1 opacity-20 rounded-full" style={{ backgroundColor: 'var(--theme-text-color)' }} />
           <h1 className="text-4xl font-bold mb-6 leading-tight" style={{ color: 'var(--theme-title-color)' }}>
-            {title || "Your Title Here"}
+            {title || "在这里填写标题"}
           </h1>
           <p className="text-lg opacity-75 mb-12 max-w-[85%] leading-relaxed">
-            {subtitle || "Add a catchy subtitle to attract readers"}
+            {subtitle || "写一句吸引读者的副标题"}
           </p>
           <div className="mt-auto opacity-50 font-medium text-xs tracking-widest uppercase flex items-center gap-2">
             {author && <><span>—</span> <span>{author}</span> <span>—</span></>}
@@ -89,7 +89,7 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
               </span>
             )}
             <h1 className="text-5xl font-black leading-[1.1] mb-6 tracking-tight" style={{ color: 'var(--theme-title-color)' }}>
-              {title || "Modern Title"}
+              {title || "现代风标题"}
             </h1>
             <div className="w-16 h-1.5 mb-6" style={{ backgroundColor: 'var(--theme-accent)' }} />
             <p className="text-xl opacity-80 font-light leading-snug">
@@ -114,12 +114,12 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
           </div>
 
           <div className="mt-8">
-            <p className="text-[10px] uppercase tracking-[0.3em] opacity-40">Presents</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] opacity-40">呈现</p>
           </div>
 
           <div className="my-auto">
             <h1 className="text-4xl font-serif italic mb-6" style={{ color: 'var(--theme-title-color)' }}>
-              {title || "The Title"}
+              {title || "封面标题"}
             </h1>
             {subtitle && (
                <p className="text-sm opacity-70 border-t pt-4 mt-2 inline-block px-8 max-w-full" style={{ borderColor: 'var(--theme-secondary)' }}>

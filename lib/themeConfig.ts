@@ -50,7 +50,7 @@ export const THEMES: ThemeConfig[] = [
   // 1. Minimal White (Default)
   {
     id: 'minimal',
-    name: 'Minimal White',
+    name: '极简白',
     type: 'free',
     container: {
       background: '#ffffff',
@@ -87,7 +87,7 @@ export const THEMES: ThemeConfig[] = [
   // 2. Geek Dark
   {
     id: 'geek',
-    name: 'Geek Dark',
+    name: '极客暗色',
     type: 'free',
     container: {
       background: '#1e1e1e',
@@ -124,7 +124,7 @@ export const THEMES: ThemeConfig[] = [
   // 3. Morandi (Instagram/Lifestyle)
   {
     id: 'morandi',
-    name: 'Morandi',
+    name: '莫兰迪',
     type: 'pro',
     container: {
       background: '#fdfbf7', // Warm Beige
@@ -161,7 +161,7 @@ export const THEMES: ThemeConfig[] = [
   // 4. Simple Grid (Note Paper)
   {
     id: 'grid',
-    name: 'Simple Grid',
+    name: '简约网格',
     type: 'free',
     container: {
       // Linear gradient grid pattern
@@ -203,7 +203,7 @@ export const THEMES: ThemeConfig[] = [
   // 5. Vintage Paper (Retro)
   {
     id: 'vintage',
-    name: 'Vintage Paper',
+    name: '复古纸张',
     type: 'pro',
     container: {
       background: '#fdf6e3', // Solarized Light base / Old paper
@@ -240,7 +240,7 @@ export const THEMES: ThemeConfig[] = [
   // 6. Modern Gradient
   {
     id: 'modern',
-    name: 'Modern Mesh',
+    name: '现代渐变',
     type: 'pro',
     container: {
       // Soft mesh gradient: Pink -> Blue
@@ -278,7 +278,7 @@ export const THEMES: ThemeConfig[] = [
   // 7. iPhone Memo (Dotted Style)
   {
     id: 'memo',
-    name: 'iPhone Note',
+    name: 'iPhone 备忘录',
     type: 'free',
     container: {
       background: '#fbfbf9', // Slightly off-white paper
@@ -318,7 +318,7 @@ export const THEMES: ThemeConfig[] = [
   // 8. Cute Paw (Image Background Example)
   {
     id: 'cute-paw',
-    name: 'Cute Paw',
+    name: '可爱爪印',
     type: 'pro',
     container: {
       background: '#eef2ff', // Fallback color

@@ -12,8 +12,8 @@ export const ThemeSidebar: React.FC<ThemeSidebarProps> = ({ currentTheme, onSele
   return (
     <div className="w-[320px] bg-white border-l border-neutral-200 flex flex-col h-full shrink-0">
       <div className="p-4 border-b border-neutral-100">
-        <h2 className="font-semibold text-slate-800">Theme Library</h2>
-        <p className="text-xs text-slate-500 mt-1">Select a style for your slides</p>
+        <h2 className="font-semibold text-slate-800">主题库</h2>
+        <p className="text-xs text-slate-500 mt-1">为图片卡片选择展示风格</p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -72,7 +72,7 @@ export const ThemeSidebar: React.FC<ThemeSidebarProps> = ({ currentTheme, onSele
                  {/* "Pro" Badge */}
                  {theme.type === 'pro' && (
                    <div className="absolute top-2 right-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                     PRO
+                     进阶
                    </div>
                  )}
                  

@@ -10,7 +10,7 @@ export const IPhoneHeader = () => {
             <div className="flex justify-between items-center py-1.5 px-1 text-amber-500">
                 <div className="flex items-center gap-1">
                     <ChevronLeft size={20} className="relative -left-1" />
-                    <span className="text-[16px] font-normal leading-none relative -top-[1px] -left-1">Notes</span>
+                    <span className="text-[16px] font-normal leading-none relative -top-[1px] -left-1">备忘录</span>
                 </div>
                 <div className="flex items-center gap-3.5">
                     <Share size={18} />

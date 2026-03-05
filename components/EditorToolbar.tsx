@@ -196,61 +196,61 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <ToolbarButton
           icon={<Undo2 size={16} />}
           onClick={() => triggerHistoryAction('undo')}
-          label="Undo"
+          label="撤销"
         />
         <ToolbarButton
           icon={<Redo2 size={16} />}
           onClick={() => triggerHistoryAction('redo')}
-          label="Redo"
+          label="重做"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
           icon={<Bold size={16} />}
           onClick={() => insertText('**', '**')}
-          label="Bold"
+          label="加粗"
         />
         <ToolbarButton
           icon={<Italic size={16} />}
           onClick={() => insertText('*', '*')}
-          label="Italic"
+          label="斜体"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
           icon={<Heading2 size={16} />}
           onClick={() => insertAtLineStart('## ')}
-          label="Heading 2"
+          label="二级标题"
         />
         <ToolbarButton
           icon={<Heading3 size={16} />}
           onClick={() => insertAtLineStart('### ')}
-          label="Heading 3"
+          label="三级标题"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
           icon={<List size={16} />}
           onClick={() => insertAtLineStart('- ')}
-          label="Bullet List"
+          label="无序列表"
         />
         <ToolbarButton
           icon={<CheckSquare size={16} />}
           onClick={() => insertAtLineStart('- [ ] ')}
-          label="Check List"
+          label="任务清单"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
           icon={<Quote size={16} />}
           onClick={() => insertAtLineStart('> ')}
-          label="Quote"
+          label="引用"
         />
         <ToolbarButton
           icon={<Code size={16} />}
           onClick={() => insertText('```\n', '\n```')}
-          label="Code Block"
+          label="代码块"
         />
         <ToolbarButton
           icon={<Minus size={16} />}
           onClick={() => insertText('\n---\n')}
-          label="Divider"
+          label="分割线"
         />
         <ToolbarButton
           icon={<Scissors size={16} />}
@@ -261,7 +261,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <ToolbarButton
           icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
           onClick={() => !isUploading && imageInputRef.current?.click()}
-          label={isUploading ? '上传中...' : 'Insert Image'}
+          label={isUploading ? '上传中...' : '插入图片'}
           disabled={isUploading}
         />
         <input

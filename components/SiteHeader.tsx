@@ -11,7 +11,7 @@ export function SiteHeader() {
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
             R
           </div>
-          <span className="text-lg font-bold tracking-tight">RedNote Converter</span>
+          <span className="text-lg font-bold tracking-tight">小红书 Markdown 转图器</span>
         </Link>
 
         <Link

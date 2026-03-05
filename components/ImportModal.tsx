@@ -23,7 +23,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImp
     const trimmedUrl = url.trim().replace(/\s/g, '');
     
     if (!trimmedUrl) {
-        setError('Please enter a URL');
+        setError('请输入链接地址');
         return;
     }
     
@@ -45,17 +45,17 @@ ${data.content}
       setStep('select');
       setUrl('');
     } catch (err: any) {
-      console.error("Import Error:", err);
+      console.error("导入错误:", err);
       
       // 3. Robust Error Extraction
-      let msg = 'Failed to import.';
+      let msg = '导入失败。';
       
       if (err.response?.data?.error) {
         // Server provided a specific error message
         msg = err.response.data.error;
       } else if (err.message === "Failed to construct 'URL': Invalid URL") {
         // Catch specific client-side URL construction errors
-        msg = "Browser Error: The URL format is invalid.";
+        msg = "浏览器错误：链接格式无效。";
       } else if (err.message) {
          msg = err.message;
       }
@@ -89,7 +89,7 @@ ${data.content}
                 </button>
              )}
              <h2 className="text-lg font-semibold text-slate-800">
-               {step === 'select' ? 'Import Content' : 'Import from WeChat'}
+               {step === 'select' ? '导入内容' : '从微信公众号导入'}
              </h2>
           </div>
           <button 
@@ -113,21 +113,21 @@ ${data.content}
                   <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <MessageCircle size={32} />
                   </div>
-                  <span className="font-semibold text-slate-700">WeChat Article</span>
+                  <span className="font-semibold text-slate-700">微信公众号文章</span>
                 </button>
 
                 <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white border border-neutral-200 rounded-xl opacity-60 cursor-not-allowed">
                   <div className="w-16 h-16 bg-neutral-100 text-slate-400 rounded-2xl flex items-center justify-center">
                     <FileText size={32} />
                   </div>
-                  <span className="font-medium text-slate-400">Notion (Soon)</span>
+                  <span className="font-medium text-slate-400">Notion（即将支持）</span>
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white border border-neutral-200 rounded-xl opacity-60 cursor-not-allowed">
                   <div className="w-16 h-16 bg-blue-50 text-blue-300 rounded-2xl flex items-center justify-center">
                     <FileCode size={32} />
                   </div>
-                  <span className="font-medium text-slate-400">Feishu (Soon)</span>
+                  <span className="font-medium text-slate-400">飞书（即将支持）</span>
                 </div>
              </div>
            )}
@@ -139,8 +139,8 @@ ${data.content}
                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                      <LinkIcon size={24} />
                    </div>
-                   <h3 className="font-medium text-slate-800">Paste Article URL</h3>
-                   <p className="text-sm text-slate-500 mt-1">Supports WeChat Official Account Articles</p>
+                   <h3 className="font-medium text-slate-800">粘贴文章链接</h3>
+                   <p className="text-sm text-slate-500 mt-1">支持微信公众号文章链接</p>
                 </div>
 
                 <div className="space-y-4">
@@ -168,10 +168,10 @@ ${data.content}
                      {isLoading ? (
                        <>
                          <Loader2 size={18} className="animate-spin" />
-                         <span>Parsing...</span>
+                         <span>解析中...</span>
                        </>
                      ) : (
-                       <span>Start Import</span>
+                       <span>开始导入</span>
                      )}
                    </button>
                 </div>
