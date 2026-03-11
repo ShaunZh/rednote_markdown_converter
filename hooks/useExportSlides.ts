@@ -12,7 +12,7 @@ const EXPORT_TIMEOUT_MS = 25000;
 export type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' | 'error';
 
 interface UseExportSlidesProps {
-  exportContainerRef: RefObject<HTMLDivElement | null>;
+  exportContainerRef: RefObject<HTMLDivElement>;
   includeCover: boolean;
   pageCount: number;
 }

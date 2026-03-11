@@ -1,21 +1,18 @@
 'use client';
 
-import Link from 'next/link';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
-import { Download, Layout, PenTool, X } from 'lucide-react';
 
-import { CoverCard, type CoverSettings } from '../../components/CoverCard';
-import { EditorHeader } from '../../components/EditorHeader';
-import { EditorToolbar } from '../../components/EditorToolbar';
+import type { CoverSettings } from '../../components/CoverCard';
+import { DraftEditorPane } from '../../components/draft/DraftEditorPane';
+import { DraftPreviewPane } from '../../components/draft/DraftPreviewPane';
+import { DraftTopBar } from '../../components/draft/DraftTopBar';
+import { ExportProgressModal } from '../../components/draft/ExportProgressModal';
 import { ImportModal } from '../../components/ImportModal';
-import { MarkdownRenderer } from '../../components/MarkdownRenderer';
 import { ThemeSidebar } from '../../components/ThemeSidebar';
-import { IPhoneHeader } from '../../components/ThemeHeaders';
 import { useDraftDocument } from '../../hooks/useDraftDocument';
 import { useExportSlides } from '../../hooks/useExportSlides';
 import { useSmartPagination } from '../../hooks/useSmartPagination';
 import { getThemeStyles } from '../../lib/themeConfig';
-import { cn } from '../../lib/utils';
 
 const CARD_WIDTH = 405;
 const CARD_HEIGHT = 540;
@@ -98,294 +95,49 @@ const EditorContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 overflow-hidden text-slate-800">
-      <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm relative">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-90">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
-            R
-          </div>
-          <h1 className="font-bold text-xl tracking-tight hidden sm:block">小红书 Markdown 转图器</h1>
-        </Link>
-
-        <div className="flex items-center gap-3">
-          {!isExporting && exportTargetIds.length > 0 && (
-            <div className="hidden md:flex items-center gap-2 text-xs text-slate-600">
-              <span className="tabular-nums">已选 {selectedExportIds.length}/{exportTargetIds.length}</span>
-              <button
-                type="button"
-                onClick={selectAllExportTargets}
-                className="px-2 py-1 rounded border border-slate-300 hover:bg-slate-100"
-              >
-                全选
-              </button>
-              <button
-                type="button"
-                onClick={clearAllExportTargets}
-                className="px-2 py-1 rounded border border-slate-300 hover:bg-slate-100"
-              >
-                清空
-              </button>
-            </div>
-          )}
-          {exportProgress && (
-            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500">
-              <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-slate-400 rounded-full transition-all duration-150"
-                  style={{ width: `${(exportProgress.done / exportProgress.total) * 100}%` }}
-                />
-              </div>
-              <span className="tabular-nums">{exportProgress.done} / {exportProgress.total}</span>
-            </div>
-          )}
-          {isExporting && !isExportModalOpen && (
-            <button
-              type="button"
-              onClick={() => setIsExportModalOpen(true)}
-              className="hidden sm:inline-flex items-center rounded-full border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
-            >
-              查看导出进度
-            </button>
-          )}
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none transform active:scale-95"
-          >
-            {isExporting ? (
-              <span>{exportProgress ? `导出中 ${exportProgress.done}/${exportProgress.total}...` : '正在准备...'}</span>
-            ) : (
-              <>
-                <Download size={18} />
-                <span>导出图片</span>
-              </>
-            )}
-          </button>
-        </div>
-      </header>
+      <DraftTopBar
+        isExporting={isExporting}
+        exportProgress={exportProgress}
+        isExportModalOpen={isExportModalOpen}
+        exportTargetCount={exportTargetIds.length}
+        selectedExportCount={selectedExportIds.length}
+        onSelectAll={selectAllExportTargets}
+        onClearAll={clearAllExportTargets}
+        onOpenExportModal={() => setIsExportModalOpen(true)}
+        onExport={handleExport}
+      />
 
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 min-w-[350px] border-r border-neutral-200 bg-white flex flex-col shrink-0 relative z-30">
-          <div className="flex border-b border-neutral-200">
-            <button
-              onClick={() => setActiveTab('editor')}
-              className={cn(
-                'flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors',
-                activeTab === 'editor'
-                  ? 'border-red-500 text-red-600 bg-red-50/50'
-                  : 'border-transparent text-slate-500 hover:bg-slate-50'
-              )}
-            >
-              <PenTool size={16} /> 编辑
-            </button>
-            <button
-              onClick={() => setActiveTab('cover')}
-              className={cn(
-                'flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors',
-                activeTab === 'cover'
-                  ? 'border-red-500 text-red-600 bg-red-50/50'
-                  : 'border-transparent text-slate-500 hover:bg-slate-50'
-              )}
-            >
-              <Layout size={16} /> 封面
-            </button>
-          </div>
+        <DraftEditorPane
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          textareaRef={textareaRef}
+          markdown={markdown}
+          setMarkdown={setMarkdown}
+          coverSettings={coverSettings}
+          setCoverSettings={setCoverSettings}
+          onImportClick={() => setIsImportModalOpen(true)}
+          onNewClick={handleCreateNewDocument}
+        />
 
-          {activeTab === 'editor' && (
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-              <EditorHeader
-                onImportClick={() => setIsImportModalOpen(true)}
-                onNewClick={handleCreateNewDocument}
-              />
-              <EditorToolbar textareaRef={textareaRef} setMarkdown={setMarkdown} />
-              <textarea
-                ref={textareaRef}
-                className="flex-1 w-full p-6 resize-none focus:outline-none font-mono text-sm leading-relaxed text-slate-700 bg-slate-50/30"
-                value={markdown}
-                onChange={(event) => setMarkdown(event.target.value)}
-                placeholder="在这里输入 Markdown 内容..."
-                spellCheck={false}
-              />
-            </div>
-          )}
-
-          {activeTab === 'cover' && (
-            <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto bg-neutral-50/50">
-              <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
-                <span className="font-medium text-slate-700 text-sm">启用封面页</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={coverSettings.enabled}
-                    onChange={(event) => setCoverSettings((prev) => ({ ...prev, enabled: event.target.checked }))}
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
-                <span className="font-medium text-slate-700 text-sm">显示页码</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={coverSettings.showPageNumber}
-                    onChange={(event) => setCoverSettings((prev) => ({ ...prev, showPageNumber: event.target.checked }))}
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
-                </label>
-              </div>
-
-              {coverSettings.enabled && (
-                <>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">标题</label>
-                      <input
-                        type="text"
-                        value={coverSettings.title}
-                        onChange={(event) => setCoverSettings((prev) => ({ ...prev, title: event.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
-                        placeholder="输入主标题"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">副标题</label>
-                      <textarea
-                        rows={2}
-                        value={coverSettings.subtitle}
-                        onChange={(event) => setCoverSettings((prev) => ({ ...prev, subtitle: event.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm resize-none"
-                        placeholder="输入副标题或说明"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">作者名称</label>
-                      <input
-                        type="text"
-                        value={coverSettings.author}
-                        onChange={(event) => setCoverSettings((prev) => ({ ...prev, author: event.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
-                        placeholder="@你的昵称"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">封面布局</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['simple', 'modern', 'outline'] as const).map((variant) => (
-                        <button
-                          key={variant}
-                          onClick={() => setCoverSettings((prev) => ({ ...prev, variant }))}
-                          className={cn(
-                            'py-2 px-1 rounded-lg border-2 text-xs font-medium capitalize transition-all',
-                            coverSettings.variant === variant
-                              ? 'border-red-500 bg-red-50 text-red-700'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          )}
-                        >
-                          {variant === 'simple' ? '简约' : variant === 'modern' ? '现代' : '描边'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner">
-          {coverSettings.enabled && (
-            <div className="relative">
-              <CoverCard
-                settings={coverSettings}
-                theme={currentTheme}
-                width={CARD_WIDTH}
-                height={CARD_HEIGHT}
-              />
-              <label className="absolute top-1 right-1 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 accent-slate-800"
-                  checked={selectedExportIds.includes('cover')}
-                  onChange={() => toggleExportSelection('cover')}
-                  disabled={isExporting}
-                />
-                封面
-              </label>
-            </div>
-          )}
-
-          {pages.map((pageContent, index) => (
-            <div
-              key={index}
-              id={`page-${index}`}
-              className="preview-card shrink-0 relative shadow-2xl transition-transform hover:scale-[1.01] duration-300 ease-out origin-center overflow-hidden"
-              style={{
-                width: `${CARD_WIDTH}px`,
-                height: `${CARD_HEIGHT}px`,
-                ...themeStyles,
-                background: 'var(--theme-bg)',
-                backgroundImage: 'var(--theme-bg-image)',
-                backgroundSize: '20px 20px, 100% 100%',
-                backgroundRepeat: 'repeat, no-repeat',
-                padding: contentPadding,
-                borderRadius: 'var(--theme-radius)',
-                border: 'var(--theme-border)',
-              }}
-            >
-              <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
-                <label className="absolute top-1 right-1 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 accent-slate-800"
-                    checked={selectedExportIds.includes(`page-${index}`)}
-                    onChange={() => toggleExportSelection(`page-${index}`)}
-                    disabled={isExporting}
-                  />
-                  第 {index + 1} 页
-                </label>
-
-                {currentTheme.container.headerStyle === 'iphone' && <IPhoneHeader />}
-
-                <div className="flex-1">
-                  {pageContent.map((block) => (
-                    <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
-                  ))}
-                </div>
-
-                {coverSettings.showPageNumber && (
-                  <div className="mt-auto pt-0.5 opacity-40 text-[9px] leading-none font-sans">
-                    <span>{index + 1} / {pages.length}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          <div className="h-20" />
-        </div>
+        <DraftPreviewPane
+          cardWidth={CARD_WIDTH}
+          cardHeight={CARD_HEIGHT}
+          coverSettings={coverSettings}
+          currentTheme={currentTheme}
+          pages={pages}
+          blocks={blocks}
+          selectedExportIds={selectedExportIds}
+          toggleExportSelection={toggleExportSelection}
+          isExporting={isExporting}
+          measureRef={measureRef}
+          exportContainerRef={exportContainerRef}
+          themeStyles={themeStyles}
+          contentPadding={contentPadding}
+        />
 
         <ThemeSidebar currentTheme={currentTheme} onSelect={setCurrentTheme} />
       </main>
-
-      <div
-        ref={measureRef}
-        className="fixed top-0 -left-[9999px] -z-50 opacity-0 pointer-events-none"
-        aria-hidden="true"
-        style={{
-          width: `${CARD_WIDTH}px`,
-          ...themeStyles,
-          fontFamily: 'var(--theme-font)',
-          padding: contentPadding,
-        }}
-      >
-        {blocks.map((block) => (
-          <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
-        ))}
-      </div>
 
       <ImportModal
         isOpen={isImportModalOpen}
@@ -396,155 +148,17 @@ const EditorContent: React.FC = () => {
         }}
       />
 
-      <div
-        ref={exportContainerRef}
-        className="fixed -left-[99999px] top-0 -z-50 opacity-0 pointer-events-none"
-        aria-hidden="true"
-      >
-        {coverSettings.enabled && (
-          <div className="export-card" data-export-id="cover">
-            <CoverCard
-              settings={coverSettings}
-              theme={currentTheme}
-              width={CARD_WIDTH}
-              height={CARD_HEIGHT}
-            />
-          </div>
-        )}
-
-        {pages.map((pageContent, index) => (
-          <div key={`export-page-${index}`} className="export-card" data-export-id={`page-${index}`}>
-            <div
-              className="shrink-0 relative overflow-hidden"
-              style={{
-                width: `${CARD_WIDTH}px`,
-                height: `${CARD_HEIGHT}px`,
-                ...themeStyles,
-                background: 'var(--theme-bg)',
-                backgroundImage: 'var(--theme-bg-image)',
-                backgroundSize: '20px 20px, 100% 100%',
-                backgroundRepeat: 'repeat, no-repeat',
-                padding: contentPadding,
-                borderRadius: 'var(--theme-radius)',
-                border: 'var(--theme-border)',
-              }}
-            >
-              <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
-                {currentTheme.container.headerStyle === 'iphone' && <IPhoneHeader />}
-
-                <div className="flex-1">
-                  {pageContent.map((block) => (
-                    <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
-                  ))}
-                </div>
-
-                {coverSettings.showPageNumber && (
-                  <div className="mt-auto pt-0.5 opacity-40 text-[9px] leading-none font-sans">
-                    <span>{index + 1} / {pages.length}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {isExportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/45 p-4 flex items-center justify-center">
-          <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
-              <h3 className="text-base font-semibold text-slate-800">导出图片</h3>
-              {!isExporting && (
-                <button
-                  type="button"
-                  onClick={closeExportModal}
-                  className="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-neutral-100 transition-colors"
-                  title="关闭"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            <div className="px-5 py-4 space-y-3">
-              <p className="text-sm text-slate-600">
-                {exportStatus === 'running' && '正在生成图片，请耐心等待。'}
-                {exportStatus === 'canceling' && '正在取消导出，当前图片完成后会停止。'}
-                {exportStatus === 'completed' && '导出已完成。'}
-                {exportStatus === 'canceled' && '导出已取消。'}
-                {exportStatus === 'error' && '导出发生异常。'}
-              </p>
-
-              {exportProgress && (
-                <div>
-                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                    <div
-                      className="h-full bg-slate-700 transition-all duration-200"
-                      style={{ width: `${(exportProgress.done / exportProgress.total) * 100}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-slate-500 tabular-nums">
-                    {exportProgress.done} / {exportProgress.total}
-                  </p>
-                </div>
-              )}
-
-              {failedPages.length > 0 && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  失败页码：{failedPages.join(', ')}
-                </p>
-              )}
-
-              {exportNotice && (
-                <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  {exportNotice}
-                </p>
-              )}
-            </div>
-
-            <div className="px-5 pb-5 flex items-center justify-end gap-2">
-              {isExporting && exportStatus !== 'canceling' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setIsExportModalOpen(false)}
-                    className="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 text-slate-600 hover:bg-neutral-100 transition-colors"
-                  >
-                    后台继续
-                  </button>
-                  <button
-                    type="button"
-                    onClick={requestCancelExport}
-                    className="px-3 py-1.5 text-sm rounded-lg bg-[#d43838] text-white hover:bg-[#be2e2e] transition-colors"
-                  >
-                    取消导出
-                  </button>
-                </>
-              )}
-
-              {isExporting && exportStatus === 'canceling' && (
-                <button
-                  type="button"
-                  disabled
-                  className="px-3 py-1.5 text-sm rounded-lg bg-slate-300 text-white cursor-not-allowed"
-                >
-                  正在取消...
-                </button>
-              )}
-
-              {!isExporting && (
-                <button
-                  type="button"
-                  onClick={closeExportModal}
-                  className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors"
-                >
-                  关闭
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportProgressModal
+        isOpen={isExportModalOpen}
+        isExporting={isExporting}
+        exportStatus={exportStatus}
+        exportProgress={exportProgress}
+        failedPages={failedPages}
+        exportNotice={exportNotice}
+        onClose={closeExportModal}
+        onHide={() => setIsExportModalOpen(false)}
+        onCancel={requestCancelExport}
+      />
     </div>
   );
 };

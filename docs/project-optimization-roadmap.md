@@ -23,44 +23,42 @@
 
 ### 已知现状
 
-- `npm run lint` 当前不可作为自动化校验命令，因为仓库尚未配置 ESLint。
-- `app/draft/page.tsx` 仍然过大，承担了过多状态和流程。
+- `hooks/useSmartPagination.ts` 仍依赖经验值和 DOM 测量时序。
 
 ---
 
 ## 3. 下一优先级
 
-下一步建议优先推进：**拆分 `app/draft/page.tsx`**
+下一步建议优先推进：**增强分页稳定性**
 
 原因：
 
-- 当前主编辑页承担了过多职责。
-- 它已经是后续功能扩展和维护成本的主要来源。
-- 现在 lint 和 build 基线已经可用，适合进入结构治理阶段。
+- 分页仍然高度依赖经验值和测量时序。
+- 这是当前最可能继续引发边界 bug 的模块。
+- 页面与状态层已经完成基础拆分，适合转向算法稳定性。
 
 ### 目标
 
-把主编辑页拆成更清晰的状态层、导出层和展示层，降低后续修改风险。
+降低复杂 Markdown、图片和分页边界条件下的布局抖动与不可预测行为。
 
 ### 涉及文件
 
-- `app/draft/page.tsx`
-- `components/draft/*`
-- `hooks/useDraftDocument.ts`
-- `hooks/useExportSlides.ts`
+- `hooks/useSmartPagination.ts`
+- `hooks/pagination/*`
+- `components/MarkdownRenderer.tsx`
 
 ### 预期修改
 
-1. 将文档加载/保存逻辑从页面中抽离。
-2. 将导出逻辑从页面中抽离。
-3. 将编辑器、封面配置、预览区域拆成独立组件。
-4. 让页面层只保留编排职责。
+1. 收敛 magic number。
+2. 降低对 `setTimeout` 和 DOM 时序偶然性的依赖。
+3. 补齐更多复杂内容的稳定分页策略。
+4. 为后续性能优化打基础。
 
 ### 验收标准
 
-- [ ] `app/draft/page.tsx` 明显瘦身。
-- [ ] 文档状态与导出状态从页面层解耦。
-- [ ] 拆分后 lint / build 仍通过。
+- [ ] 图片、长段落、代码块分页更稳定。
+- [ ] 分页逻辑更容易单独验证。
+- [ ] 调整分页策略时不需要改 React 页面层。
 
 ---
 
@@ -108,7 +106,7 @@
 #### Task 4. 拆分 `app/draft/page.tsx`
 
 - 优先级：P1
-- 状态：进行中
+- 状态：已完成
 - 文件：
   - `app/draft/page.tsx`
   - `components/draft/*`
@@ -136,7 +134,7 @@
 #### Task 6. 拆分页逻辑
 
 - 优先级：P1
-- 状态：待开始
+- 状态：进行中
 - 文件：
   - `hooks/useSmartPagination.ts`
 - 结果：

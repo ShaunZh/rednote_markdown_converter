@@ -22,7 +22,7 @@ import {
 import { RICH_TEXT_TEMPLATE } from '../lib/richTextTemplate';
 
 interface EditorToolbarProps {
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
   setMarkdown: (value: string) => void;
 }
 
