@@ -9,7 +9,7 @@ import {
   Code,
   Quote,
   Minus,
-  Image,
+  Image as ImageIcon,
   Loader2,
   BookOpenText,
   Copy,
@@ -259,7 +259,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
         <ToolbarButton
-          icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
+          icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
           onClick={() => !isUploading && imageInputRef.current?.click()}
           label={isUploading ? '上传中...' : '插入图片'}
           disabled={isUploading}

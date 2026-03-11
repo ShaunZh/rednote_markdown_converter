@@ -66,7 +66,7 @@ export const ThemeSidebar: React.FC<ThemeSidebarProps> = ({ currentTheme, onSele
                         <div className="w-1.5 h-1.5 rounded-full bg-current" />
                         <div className="w-1.5 h-1.5 rounded-full bg-current" />
                     </div>
-                    <span>const style = "cool";</span>
+                    <span>const style = &quot;cool&quot;;</span>
                  </div>
 
                  {/* "Pro" Badge */}

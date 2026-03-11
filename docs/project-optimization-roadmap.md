@@ -23,48 +23,44 @@
 
 ### 已知现状
 
-- `app/api/parse-wechat/route.ts` 允许任意 URL 进入解析流程，缺少域名白名单。
-- `app/api/proxy-image/route.ts` 当前可代理任意外部图片 URL，缺少协议、host、内网地址限制。
 - `npm run lint` 当前不可作为自动化校验命令，因为仓库尚未配置 ESLint。
-- `README.md` 与实际项目不符，仍保留模板内容。
 - `app/draft/page.tsx` 仍然过大，承担了过多状态和流程。
 
 ---
 
 ## 3. 下一优先级
 
-下一步建议优先推进：**导入与图片代理的安全收口**
+下一步建议优先推进：**拆分 `app/draft/page.tsx`**
 
 原因：
 
-- 这是当前最明显的高风险项。
-- 修复范围小，收益高。
-- 不会打断现有产品行为。
-- 在公开部署前应优先解决。
+- 当前主编辑页承担了过多职责。
+- 它已经是后续功能扩展和维护成本的主要来源。
+- 现在 lint 和 build 基线已经可用，适合进入结构治理阶段。
 
 ### 目标
 
-限制服务端只处理预期来源的微信文章与图片资源，避免形成开放代理或 SSRF 风险。
+把主编辑页拆成更清晰的状态层、导出层和展示层，降低后续修改风险。
 
 ### 涉及文件
 
-- `app/api/parse-wechat/route.ts`
-- `app/api/proxy-image/route.ts`
+- `app/draft/page.tsx`
+- `components/draft/*`
+- `hooks/useDraftDocument.ts`
+- `hooks/useExportSlides.ts`
 
 ### 预期修改
 
-1. 为 `parse-wechat` 增加 URL 校验函数。
-2. 仅允许 `https:` 协议。
-3. 仅允许 `mp.weixin.qq.com` 及明确批准的相关 host。
-4. 在 `proxy-image` 中限制协议、host，并拒绝私网 / localhost / 环回地址。
-5. 返回更明确的 4xx 错误，而不是统一 500。
+1. 将文档加载/保存逻辑从页面中抽离。
+2. 将导出逻辑从页面中抽离。
+3. 将编辑器、封面配置、预览区域拆成独立组件。
+4. 让页面层只保留编排职责。
 
 ### 验收标准
 
-- [ ] 非微信文章链接会被明确拒绝。
-- [ ] 本地地址、内网地址、非法协议不会被代理。
-- [ ] 合法微信公众号文章仍可正常导入。
-- [ ] 合法微信图片仍可正常展示。
+- [ ] `app/draft/page.tsx` 明显瘦身。
+- [ ] 文档状态与导出状态从页面层解耦。
+- [ ] 拆分后 lint / build 仍通过。
 
 ---
 
@@ -88,7 +84,7 @@
 #### Task 2. 清理旧 draft 文档与遗留说明
 
 - 优先级：P1
-- 状态：待开始
+- 状态：已完成
 - 文件：
   - `docs/requirements-draft-auto-save.md`
   - `README.md`
@@ -99,7 +95,7 @@
 #### Task 3. 建立 lint 基线
 
 - 优先级：P1
-- 状态：待开始
+- 状态：已完成
 - 文件：
   - `package.json`
   - `.eslintrc.json` 或 `eslint.config.*`
