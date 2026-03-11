@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Download, PenTool, Layout, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import JSZip from 'jszip';
@@ -15,7 +15,6 @@ import {
   generateDocId,
   titleFromMarkdown,
   subtitleFromMarkdown,
-  setDraft,
   type CoverSettingsStored,
 } from '../../lib/draftStorage';
 import { EditorToolbar } from '../../components/EditorToolbar';
@@ -83,7 +82,6 @@ const EditorContent: React.FC = () => {
   const cancelExportRef = useRef(false);
   const currentDocumentIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasHydratedRef = useRef(false);
   const latestStateRef = useRef({
     markdown: '',
     coverSettings: {
@@ -99,6 +97,8 @@ const EditorContent: React.FC = () => {
   });
 
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const documentId = searchParams.get('id');
 
   // Cover State
   const [coverSettings, setCoverSettings] = useState<CoverSettings>(DEFAULT_COVER_SETTINGS);
@@ -137,31 +137,47 @@ const EditorContent: React.FC = () => {
   const selectAllExportTargets = () => setExcludedExportIds([]);
   const clearAllExportTargets = () => setExcludedExportIds(exportTargetIds);
 
-  // --- Load by ?id= (once) ---
+  const resetEditorDocument = useCallback(() => {
+    currentDocumentIdRef.current = null;
+    setMarkdown('');
+    setCurrentTheme(THEMES[0]);
+    setCoverSettings(DEFAULT_COVER_SETTINGS);
+    setExcludedExportIds([]);
+    setActiveTab('editor');
+  }, []);
+
+  // --- Load by ?id= or reset to a new blank document ---
   useEffect(() => {
-    if (hasHydratedRef.current) return;
-    hasHydratedRef.current = true;
-    const id = searchParams.get('id');
-    if (id) {
-      const doc = getDocumentById(id);
+    if (documentId) {
+      const doc = getDocumentById(documentId);
       if (doc) {
         setMarkdown(doc.markdown);
         setCoverSettings(normalizeCoverSettings(doc.coverSettings as Partial<CoverSettingsStored>));
         const theme = THEMES.find((t) => t.id === doc.themeId);
         if (theme) setCurrentTheme(theme);
         currentDocumentIdRef.current = doc.id;
+        setExcludedExportIds([]);
+        return;
       }
     }
-  }, [searchParams]);
 
-  const flushDraft = useCallback(() => {
+    resetEditorDocument();
+  }, [documentId, resetEditorDocument]);
+
+  const handleCreateNewDocument = useCallback(() => {
+    resetEditorDocument();
+    if (documentId) {
+      router.push('/draft');
+    }
+  }, [documentId, resetEditorDocument, router]);
+
+  const flushRecentEdit = useCallback(() => {
     const { markdown: md, coverSettings: coverStored, themeId, pageCount } = latestStateRef.current;
     if (md.trim().length === 0) return;
 
     const id = currentDocumentIdRef.current ?? generateDocId();
     if (!currentDocumentIdRef.current) currentDocumentIdRef.current = id;
 
-    setDraft(md, coverStored, themeId);
     saveRecentEdit({
       id,
       title: titleFromMarkdown(md),
@@ -173,7 +189,7 @@ const EditorContent: React.FC = () => {
     });
   }, []);
 
-  // --- Persist draft + recent edits (debounced for markdown) ---
+  // --- Persist recent edits (debounced) ---
   useEffect(() => {
     const coverStored: CoverSettingsStored = {
       enabled: coverSettings.enabled,
@@ -191,12 +207,12 @@ const EditorContent: React.FC = () => {
     };
 
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(flushDraft, 800);
+    saveTimeoutRef.current = setTimeout(flushRecentEdit, 800);
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     };
-  }, [markdown, coverSettings, currentTheme.id, pages.length, flushDraft]);
+  }, [markdown, coverSettings, currentTheme.id, pages.length, flushRecentEdit]);
 
   // Flush the latest edit before route change/unmount so Home can read recent edits immediately.
   useEffect(() => {
@@ -205,9 +221,9 @@ const EditorContent: React.FC = () => {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
       }
-      flushDraft();
+      flushRecentEdit();
     };
-  }, [flushDraft]);
+  }, [flushRecentEdit]);
 
   // --- Export Logic ---
   const yieldToMain = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -449,7 +465,10 @@ const EditorContent: React.FC = () => {
           {/* Tab Content: Editor */}
           {activeTab === 'editor' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-              <EditorHeader onImportClick={() => setIsImportModalOpen(true)} />
+              <EditorHeader
+                onImportClick={() => setIsImportModalOpen(true)}
+                onNewClick={handleCreateNewDocument}
+              />
               <EditorToolbar
                 textareaRef={textareaRef}
                 setMarkdown={setMarkdown}

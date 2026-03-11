@@ -3,9 +3,10 @@ import { Import, Plus } from 'lucide-react';
 
 interface EditorHeaderProps {
   onImportClick: () => void;
+  onNewClick: () => void;
 }
 
-export const EditorHeader: React.FC<EditorHeaderProps> = ({ onImportClick }) => {
+export const EditorHeader: React.FC<EditorHeaderProps> = ({ onImportClick, onNewClick }) => {
   return (
     <div className="h-14 flex items-center justify-between px-4 border-b border-neutral-200 bg-white shrink-0">
       <div className="flex items-center gap-2">
@@ -23,7 +24,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({ onImportClick }) => 
            <span>导入</span>
         </button>
         
-        <button className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors" title="新建草稿">
+        <button
+          type="button"
+          onClick={onNewClick}
+          className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
+          title="新建笔记"
+        >
            <Plus size={16} />
         </button>
       </div>

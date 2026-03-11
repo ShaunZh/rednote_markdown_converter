@@ -1,14 +1,9 @@
 /**
- * LocalStorage schema for draft + recent edits.
- * Keys: rednote-draft-*, rednote-recent-edits
+ * LocalStorage schema for recent edits.
  */
 
 export const STORAGE_KEYS = {
-  draftMarkdown: 'rednote-draft-markdown',
-  draftCover: 'rednote-draft-cover',
-  draftTheme: 'rednote-draft-theme',
   recentEdits: 'rednote-recent-edits',
-  loadDocId: 'rednote-load-doc-id',
 } as const;
 
 export interface CoverSettingsStored {
@@ -103,34 +98,4 @@ export function subtitleFromMarkdown(markdown: string): string {
   const second = lines[1];
   if (!second || second.startsWith('#')) return '';
   return second.slice(0, 120);
-}
-
-export interface DraftData {
-  markdown: string | null;
-  coverSettings: CoverSettingsStored | null;
-  themeId: string | null;
-}
-
-export function getDraft(): DraftData {
-  const markdown = safeGet(STORAGE_KEYS.draftMarkdown, (s) => s);
-  const cover = safeGet(STORAGE_KEYS.draftCover, (s) => s);
-  const themeId = safeGet(STORAGE_KEYS.draftTheme, (s) => s);
-  let coverSettings: CoverSettingsStored | null = null;
-  if (cover) {
-    try {
-      const parsed = JSON.parse(cover) as unknown;
-      if (parsed && typeof parsed === 'object' && 'enabled' in parsed) {
-        coverSettings = parsed as CoverSettingsStored;
-      }
-    } catch {
-      // ignore
-    }
-  }
-  return { markdown, coverSettings, themeId };
-}
-
-export function setDraft(markdown: string, coverSettings: CoverSettingsStored, themeId: string): void {
-  safeSet(STORAGE_KEYS.draftMarkdown, markdown);
-  safeSet(STORAGE_KEYS.draftCover, JSON.stringify(coverSettings));
-  safeSet(STORAGE_KEYS.draftTheme, themeId);
 }
