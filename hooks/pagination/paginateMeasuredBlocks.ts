@@ -1,5 +1,5 @@
 import type { ThemeConfig } from '../../lib/themeConfig';
-import { splitBlock } from './splitBlock';
+import { forceSplitBlock, splitBlock } from './splitBlock';
 import type { Block } from './types';
 
 const FOOTER_RESERVED_HEIGHT = 8;
@@ -70,12 +70,19 @@ export function paginateMeasuredBlocks({
       }
 
       const ratio = (maxContentHeight / singleBlockHeight) * SPLIT_SAFETY_RATIO;
-      const newBlocks = splitBlock(block, ratio);
+      const newBlocks = splitBlock(block, ratio) ?? forceSplitBlock(block, ratio);
       if (newBlocks) {
         return {
           kind: 'split',
           blocks: [...blocks.slice(0, i), ...newBlocks, ...blocks.slice(i + 1)],
         };
+      }
+
+      if (currentPage.length === 0) {
+        newPages.push([block]);
+        currentPage = [];
+        pageStartOffset = i + 1 < blockNodes.length ? blockNodes[i + 1].offsetTop : pageStartOffset;
+        continue;
       }
     }
 
@@ -96,7 +103,7 @@ export function paginateMeasuredBlocks({
         const remainingHeight = maxContentHeight - usedHeight;
         if (remainingHeight > 48 && singleBlockHeight > 0) {
           const ratio = Math.max(0.1, Math.min(0.9, (remainingHeight / singleBlockHeight) * SPLIT_SAFETY_RATIO));
-          const newBlocks = splitBlock(block, ratio);
+          const newBlocks = splitBlock(block, ratio) ?? forceSplitBlock(block, ratio);
           if (newBlocks) {
             return {
               kind: 'split',

@@ -23,13 +23,14 @@
 
 ### 已知现状
 
-- `hooks/useSmartPagination.ts` 仍依赖经验值和 DOM 测量时序。
+- `hooks/useSmartPagination.ts` 已拆出核心分页模块，但仍存在 header/footer 预留高度依赖经验值的问题。
+- 极端复杂内容下仍需要继续压测分页边界，尤其是超长列表、表格和图片混排。
 
 ---
 
 ## 3. 下一优先级
 
-下一步建议优先推进：**增强分页稳定性**
+下一步建议优先推进：**继续增强分页稳定性**
 
 原因：
 
@@ -50,14 +51,15 @@
 ### 预期修改
 
 1. 收敛 magic number。
-2. 降低对 `setTimeout` 和 DOM 时序偶然性的依赖。
+2. 降低对 header/footer 经验值和 DOM 时序偶然性的依赖。
 3. 补齐更多复杂内容的稳定分页策略。
 4. 为后续性能优化打基础。
 
 ### 验收标准
 
 - [ ] 图片、长段落、代码块分页更稳定。
-- [ ] 分页逻辑更容易单独验证。
+- [ ] 同一内容多次渲染时分页结果保持收敛。
+- [ ] 极端超长内容不会继续堆在单页里溢出。
 - [ ] 调整分页策略时不需要改 React 页面层。
 
 ---
@@ -134,25 +136,30 @@
 #### Task 6. 拆分页逻辑
 
 - 优先级：P1
-- 状态：进行中
+- 状态：已完成
 - 文件：
   - `hooks/useSmartPagination.ts`
+  - `hooks/pagination/*`
 - 结果：
   - 抽出 `splitMarkdownIntoBlocks`
   - 抽出 `splitBlock`
-  - 抽出 `paginateBlocks`
-  - 将 magic number 集中管理
+  - 抽出 `paginateMeasuredBlocks`
+  - 将分页纯逻辑从页面 hook 中剥离
 
 #### Task 7. 增强分页稳定性
 
 - 优先级：P2
-- 状态：待开始
+- 状态：进行中
 - 文件：
   - `hooks/useSmartPagination.ts`
+  - `hooks/pagination/paginateMeasuredBlocks.ts`
+  - `hooks/pagination/splitBlock.ts`
   - `components/MarkdownRenderer.tsx`
 - 结果：
-  - 减少对经验值和延迟定时器的依赖
-  - 补充复杂内容下的边界处理
+  - 移除固定 `setTimeout` 测量延迟
+  - 接入图片与字体稳定后的重新测量
+  - 为超高文本块增加强制拆分兜底
+  - 对相同分页结果跳过重复 state 更新
 
 ### Phase 4：性能优化
 
@@ -182,14 +189,12 @@
 
 ## 5. 推荐执行顺序
 
-建议严格按下面顺序推进：
+剩余任务建议按下面顺序推进：
 
-1. 导入与代理安全收口
-2. README / 历史文档清理
-3. ESLint 基线
-4. 拆分 `app/draft/page.tsx`
-5. 分页逻辑拆分
-6. 包体积与渲染性能优化
+1. 继续增强分页稳定性
+2. 收敛 header/footer 预留高度的经验值
+3. 为极端内容补最小可重复验证用例
+4. 包体积与渲染性能优化
 
 ---
 

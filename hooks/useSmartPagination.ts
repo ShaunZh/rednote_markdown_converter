@@ -6,6 +6,12 @@ import type { Block } from './pagination/types';
 
 export type { Block } from './pagination/types';
 
+const getBlocksSignature = (items: Block[]) =>
+    items.map((block) => `${block.id}:${block.type}:${block.content}`).join('\u0001');
+
+const getPagesSignature = (items: Block[][]) =>
+    items.map((page) => page.map((block) => block.id).join('\u0002')).join('\u0003');
+
 interface UseSmartPaginationProps {
     markdown: string;
     theme: ThemeConfig;
@@ -24,6 +30,7 @@ export const useSmartPagination = ({
     const measureRef = useRef<HTMLDivElement>(null);
     const [pages, setPages] = useState<Block[][]>([[]]);
     const [blocks, setBlocks] = useState<Block[]>([]);
+    const [measurementVersion, setMeasurementVersion] = useState(0);
 
     // Initial Parse: Reset blocks when markdown input changes
     // We strictly depend on markdown string here.
@@ -31,41 +38,104 @@ export const useSmartPagination = ({
         setBlocks(splitMarkdownIntoBlocks(markdown));
     }, [markdown]);
 
+    useEffect(() => {
+        if (!measureRef.current) return;
+
+        const measureContainer = measureRef.current;
+        let frameId = 0;
+        let disposed = false;
+        const scheduleMeasurement = () => {
+            if (frameId) {
+                cancelAnimationFrame(frameId);
+            }
+            frameId = requestAnimationFrame(() => {
+                if (!disposed) {
+                    setMeasurementVersion((prev) => prev + 1);
+                }
+            });
+        };
+
+        scheduleMeasurement();
+
+        const fontSet = typeof document !== 'undefined' ? document.fonts : null;
+        const handleFontsSettled = () => {
+            scheduleMeasurement();
+        };
+        if (fontSet) {
+            void fontSet.ready.then(() => {
+                if (!disposed) {
+                    scheduleMeasurement();
+                }
+            });
+            fontSet.addEventListener('loadingdone', handleFontsSettled);
+            fontSet.addEventListener('loadingerror', handleFontsSettled);
+        }
+
+        const resizeObserver = new ResizeObserver(() => {
+            scheduleMeasurement();
+        });
+        resizeObserver.observe(measureContainer);
+
+        const images = Array.from(measureContainer.querySelectorAll('img'));
+        const handleImageEvent = () => {
+            scheduleMeasurement();
+        };
+        images.forEach((image) => {
+            image.addEventListener('load', handleImageEvent);
+            image.addEventListener('error', handleImageEvent);
+        });
+
+        return () => {
+            disposed = true;
+            if (frameId) {
+                cancelAnimationFrame(frameId);
+            }
+            resizeObserver.disconnect();
+            if (fontSet) {
+                fontSet.removeEventListener('loadingdone', handleFontsSettled);
+                fontSet.removeEventListener('loadingerror', handleFontsSettled);
+            }
+            images.forEach((image) => {
+                image.removeEventListener('load', handleImageEvent);
+                image.removeEventListener('error', handleImageEvent);
+            });
+        };
+    }, [blocks, theme, cardHeight, includePageNumber, paddingYOffset]);
+
     // Measurement & Pagination Effect
     // This effect runs whenever 'blocks' changes (including after a split), creating a recursive loop until stable.
     useEffect(() => {
         if (!measureRef.current) return;
 
         const measureContainer = measureRef.current;
+        const blockNodes = Array.from(measureContainer.children) as HTMLElement[];
+        if (blockNodes.length === 0) return;
 
-        // We need to wait for DOM to update with new content/styles
-        const timeout = setTimeout(() => {
-            const blockNodes = Array.from(measureContainer.children) as HTMLElement[];
-            if (blockNodes.length === 0) return;
+        if (blockNodes.length !== blocks.length) return;
 
-            // Synchronization check: Ensure DOM nodes match blocks state
-            // If they don't match, it means a render is pending or mismatched, skip this cycle.
-            if (blockNodes.length !== blocks.length) return;
+        const paginationResult = paginateMeasuredBlocks({
+            blockNodes,
+            blocks,
+            theme,
+            cardHeight,
+            includePageNumber,
+            paddingYOffset,
+        });
 
-            const paginationResult = paginateMeasuredBlocks({
-                blockNodes,
-                blocks,
-                theme,
-                cardHeight,
-                includePageNumber,
-                paddingYOffset,
-            });
-
-            if (paginationResult.kind === 'split') {
+        if (paginationResult.kind === 'split') {
+            const currentSignature = getBlocksSignature(blocks);
+            const nextSignature = getBlocksSignature(paginationResult.blocks);
+            if (currentSignature !== nextSignature) {
                 setBlocks(paginationResult.blocks);
-            } else {
+            }
+        } else {
+            const currentSignature = getPagesSignature(pages);
+            const nextSignature = getPagesSignature(paginationResult.pages);
+            if (currentSignature !== nextSignature) {
                 setPages(paginationResult.pages);
             }
-
-        }, 150); // Delay to allow rendering
-
-        return () => clearTimeout(timeout);
-    }, [blocks, theme, cardHeight, includePageNumber, paddingYOffset]);
+        }
+    }, [blocks, cardHeight, includePageNumber, measurementVersion, paddingYOffset, pages, theme]);
 
     return {
         pages,
