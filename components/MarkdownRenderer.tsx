@@ -19,7 +19,7 @@ const MacWindowHeader = () => (
   </div>
 );
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) => {
+const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, theme }) => {
   const baseLineHeight = Number.parseFloat(theme.typography.lineHeight || '1.6');
   const contentLineHeight = Math.min(2.1, Number.isFinite(baseLineHeight) ? baseLineHeight + 0.06 : 1.66);
 
@@ -241,3 +241,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, the
     </div>
   );
 };
+
+export const MarkdownRenderer = React.memo(
+  MarkdownRendererComponent,
+  (prevProps, nextProps) => (
+    prevProps.content === nextProps.content
+    && prevProps.theme.id === nextProps.theme.id
+  )
+);
+
+MarkdownRenderer.displayName = 'MarkdownRenderer';

@@ -16,13 +16,14 @@ interface DraftPreviewPaneProps {
   selectedExportIds: string[];
   toggleExportSelection: (id: string) => void;
   isExporting: boolean;
+  shouldRenderExportContainer: boolean;
   measureRef: React.RefObject<HTMLDivElement>;
   exportContainerRef: React.RefObject<HTMLDivElement>;
   themeStyles: React.CSSProperties;
   contentPadding: string;
 }
 
-function PageCard({
+const PageCard = React.memo(function PageCard({
   exportId,
   width,
   height,
@@ -97,9 +98,11 @@ function PageCard({
       </div>
     </div>
   );
-}
+});
 
-export function DraftPreviewPane({
+PageCard.displayName = 'PageCard';
+
+function DraftPreviewPaneComponent({
   cardWidth,
   cardHeight,
   coverSettings,
@@ -109,6 +112,7 @@ export function DraftPreviewPane({
   selectedExportIds,
   toggleExportSelection,
   isExporting,
+  shouldRenderExportContainer,
   measureRef,
   exportContainerRef,
   themeStyles,
@@ -181,38 +185,44 @@ export function DraftPreviewPane({
         ))}
       </div>
 
-      <div
-        ref={exportContainerRef}
-        className="fixed -left-[99999px] top-0 -z-50 opacity-0 pointer-events-none"
-        aria-hidden="true"
-      >
-        {coverSettings.enabled && (
-          <div className="export-card" data-export-id="cover">
-            <CoverCard
-              settings={coverSettings}
-              theme={currentTheme}
-              width={cardWidth}
-              height={cardHeight}
-            />
-          </div>
-        )}
+      {shouldRenderExportContainer && (
+        <div
+          ref={exportContainerRef}
+          className="fixed -left-[99999px] top-0 -z-50 opacity-0 pointer-events-none"
+          aria-hidden="true"
+        >
+          {coverSettings.enabled && (
+            <div className="export-card" data-export-id="cover">
+              <CoverCard
+                settings={coverSettings}
+                theme={currentTheme}
+                width={cardWidth}
+                height={cardHeight}
+              />
+            </div>
+          )}
 
-        {pages.map((pageContent, index) => (
-          <div key={`export-page-${index}`} className="export-card" data-export-id={`page-${index}`}>
-            <PageCard
-              width={cardWidth}
-              height={cardHeight}
-              currentTheme={currentTheme}
-              pageContent={pageContent}
-              pageIndex={index}
-              totalPages={pages.length}
-              showPageNumber={coverSettings.showPageNumber}
-              themeStyles={themeStyles}
-              contentPadding={contentPadding}
-            />
-          </div>
-        ))}
-      </div>
+          {pages.map((pageContent, index) => (
+            <div key={`export-page-${index}`} className="export-card" data-export-id={`page-${index}`}>
+              <PageCard
+                width={cardWidth}
+                height={cardHeight}
+                currentTheme={currentTheme}
+                pageContent={pageContent}
+                pageIndex={index}
+                totalPages={pages.length}
+                showPageNumber={coverSettings.showPageNumber}
+                themeStyles={themeStyles}
+                contentPadding={contentPadding}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
+
+export const DraftPreviewPane = React.memo(DraftPreviewPaneComponent);
+
+DraftPreviewPane.displayName = 'DraftPreviewPane';

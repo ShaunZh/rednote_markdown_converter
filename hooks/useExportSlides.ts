@@ -23,6 +23,7 @@ export function useExportSlides({
   pageCount,
 }: UseExportSlidesProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [shouldRenderExportContainer, setShouldRenderExportContainer] = useState(false);
   const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
@@ -63,6 +64,7 @@ export function useExportSlides({
   const resetExportSelections = useCallback(() => setExcludedExportIds([]), []);
 
   const yieldToMain = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+  const waitForNextFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 
   const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) =>
     new Promise<T>((resolve, reject) => {
@@ -100,6 +102,7 @@ export function useExportSlides({
     setExportProgress(null);
     setExportNotice('');
     setFailedPages([]);
+    setShouldRenderExportContainer(false);
   }, [isExporting]);
 
   const handleExport = useCallback(async () => {
@@ -107,34 +110,46 @@ export function useExportSlides({
       return;
     }
 
-    const exportContainer = exportContainerRef.current;
-    if (!exportContainer) {
-      return;
-    }
-
-    const selectedSet = new Set(selectedExportIds);
-    const pageElements = Array.from(
-      exportContainer.querySelectorAll<HTMLElement>('.export-card')
-    ).filter((element) => {
-      const id = element.dataset.exportId;
-      return typeof id === 'string' && selectedSet.has(id);
-    });
-
-    const total = pageElements.length;
-    if (total === 0) {
-      alert('请先在预览区勾选需要导出的页面。');
-      return;
-    }
-
     cancelExportRef.current = false;
     setFailedPages([]);
     setExportNotice('');
+    setExportProgress(null);
     setExportStatus('running');
     setIsExportModalOpen(true);
     setIsExporting(true);
-    setExportProgress({ done: 0, total });
+    setShouldRenderExportContainer(true);
 
     try {
+      await waitForNextFrame();
+      await waitForNextFrame();
+
+      const exportContainer = exportContainerRef.current;
+      if (!exportContainer) {
+        setExportProgress(null);
+        setExportStatus('error');
+        setExportNotice('导出容器初始化失败，请重试。');
+        return;
+      }
+
+      const selectedSet = new Set(selectedExportIds);
+      const pageElements = Array.from(
+        exportContainer.querySelectorAll<HTMLElement>('.export-card')
+      ).filter((element) => {
+        const id = element.dataset.exportId;
+        return typeof id === 'string' && selectedSet.has(id);
+      });
+
+      const total = pageElements.length;
+      if (total === 0) {
+        setExportProgress(null);
+        setExportStatus('idle');
+        setIsExportModalOpen(false);
+        alert('请先在预览区勾选需要导出的页面。');
+        return;
+      }
+
+      setExportProgress({ done: 0, total });
+
       if (typeof document !== 'undefined' && 'fonts' in document) {
         await (document as Document & { fonts?: FontFaceSet }).fonts?.ready;
       }
@@ -203,12 +218,14 @@ export function useExportSlides({
       setExportNotice('导出出现异常，请重试或降低内容复杂度后再导出。');
     } finally {
       setIsExporting(false);
+      setShouldRenderExportContainer(false);
       cancelExportRef.current = false;
     }
   }, [exportContainerRef, isExporting, selectedExportIds]);
 
   return {
     isExporting,
+    shouldRenderExportContainer,
     exportProgress,
     isExportModalOpen,
     setIsExportModalOpen,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CoverSettings } from '../../components/CoverCard';
 import { DraftEditorPane } from '../../components/draft/DraftEditorPane';
@@ -64,6 +64,7 @@ const EditorContent: React.FC = () => {
 
   const {
     isExporting,
+    shouldRenderExportContainer,
     exportProgress,
     isExportModalOpen,
     setIsExportModalOpen,
@@ -90,8 +91,11 @@ const EditorContent: React.FC = () => {
     resetExportSelections();
   }, [documentRevision, resetExportSelections]);
 
-  const themeStyles = getThemeStyles(currentTheme);
-  const contentPadding = `calc(var(--theme-padding) - ${CONTENT_PADDING_TOP_BOTTOM_REDUCTION}px) calc(var(--theme-padding) - ${CONTENT_PADDING_LEFT_RIGHT_REDUCTION}px)`;
+  const themeStyles = useMemo(() => getThemeStyles(currentTheme), [currentTheme]);
+  const contentPadding = useMemo(
+    () => `calc(var(--theme-padding) - ${CONTENT_PADDING_TOP_BOTTOM_REDUCTION}px) calc(var(--theme-padding) - ${CONTENT_PADDING_LEFT_RIGHT_REDUCTION}px)`,
+    []
+  );
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 overflow-hidden text-slate-800">
@@ -130,6 +134,7 @@ const EditorContent: React.FC = () => {
           selectedExportIds={selectedExportIds}
           toggleExportSelection={toggleExportSelection}
           isExporting={isExporting}
+          shouldRenderExportContainer={shouldRenderExportContainer}
           measureRef={measureRef}
           exportContainerRef={exportContainerRef}
           themeStyles={themeStyles}
