@@ -108,7 +108,7 @@
 #### Task 4. 拆分 `app/draft/page.tsx`
 
 - 优先级：P1
-- 状态：待开始
+- 状态：进行中
 - 文件：
   - `app/draft/page.tsx`
   - `components/draft/*`

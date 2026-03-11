@@ -1,42 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Download, PenTool, Layout, X } from 'lucide-react';
-import { toPng } from 'html-to-image';
-import JSZip from 'jszip';
-import FileSaver from 'file-saver';
-import { THEMES, ThemeConfig, getThemeStyles } from '../../lib/themeConfig';
-import { cn } from '../../lib/utils';
-import {
-  getDocumentById,
-  saveRecentEdit,
-  generateDocId,
-  titleFromMarkdown,
-  subtitleFromMarkdown,
-  type CoverSettingsStored,
-} from '../../lib/draftStorage';
-import { EditorToolbar } from '../../components/EditorToolbar';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { Download, Layout, PenTool, X } from 'lucide-react';
+
+import { CoverCard, type CoverSettings } from '../../components/CoverCard';
 import { EditorHeader } from '../../components/EditorHeader';
+import { EditorToolbar } from '../../components/EditorToolbar';
 import { ImportModal } from '../../components/ImportModal';
-import { CoverCard, CoverSettings } from '../../components/CoverCard';
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
 import { ThemeSidebar } from '../../components/ThemeSidebar';
-import { useSmartPagination, Block } from '../../hooks/useSmartPagination';
 import { IPhoneHeader } from '../../components/ThemeHeaders';
+import { useDraftDocument } from '../../hooks/useDraftDocument';
+import { useExportSlides } from '../../hooks/useExportSlides';
+import { useSmartPagination } from '../../hooks/useSmartPagination';
+import { getThemeStyles } from '../../lib/themeConfig';
+import { cn } from '../../lib/utils';
 
-// --- Constants ---
 const CARD_WIDTH = 405;
 const CARD_HEIGHT = 540;
-const EXPORT_TARGET_WIDTH = 1080;
-// 405x540 * 2.6666667 = 1080x1440
-const EXPORT_SCALE = EXPORT_TARGET_WIDTH / CARD_WIDTH;
-const EXPORT_TIMEOUT_MS = 25000;
 const CONTENT_PADDING_TOP_BOTTOM_REDUCTION = 6;
 const CONTENT_PADDING_LEFT_RIGHT_REDUCTION = 14;
-
-type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' | 'error';
 
 const DEFAULT_COVER_SETTINGS: CoverSettings = {
   enabled: true,
@@ -47,63 +31,28 @@ const DEFAULT_COVER_SETTINGS: CoverSettings = {
   showPageNumber: true,
 };
 
-const normalizeCoverSettings = (
-  input: Partial<CoverSettingsStored> | Partial<CoverSettings> | null | undefined
-): CoverSettings => ({
-  ...DEFAULT_COVER_SETTINGS,
-  ...input,
-  variant: (input?.variant as CoverSettings['variant']) ?? DEFAULT_COVER_SETTINGS.variant,
-});
-
-
-
-// --- Main App Component ---
-
 const EditorContent: React.FC = () => {
-  // State
-  const [markdown, setMarkdown] = useState<string>('');
-
-  // Use the new ThemeConfig system
-  const [currentTheme, setCurrentTheme] = useState<ThemeConfig>(THEMES[0]);
-
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
-  const [exportNotice, setExportNotice] = useState('');
-  const [failedPages, setFailedPages] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<'editor' | 'cover'>('editor');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [excludedExportIds, setExcludedExportIds] = useState<string[]>([]);
+  const [pageCountForSave, setPageCountForSave] = useState(1);
 
-  // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const exportContainerRef = useRef<HTMLDivElement>(null);
-  const cancelExportRef = useRef(false);
-  const currentDocumentIdRef = useRef<string | null>(null);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestStateRef = useRef({
-    markdown: '',
-    coverSettings: {
-      enabled: true,
-      title: '',
-      subtitle: '',
-      author: '',
-      variant: 'simple' as CoverSettingsStored['variant'],
-      showPageNumber: true,
-    },
-    themeId: THEMES[0].id,
-    pageCount: 1,
+
+  const {
+    markdown,
+    setMarkdown,
+    currentTheme,
+    setCurrentTheme,
+    coverSettings,
+    setCoverSettings,
+    handleCreateNewDocument,
+    documentRevision,
+  } = useDraftDocument({
+    defaultCoverSettings: DEFAULT_COVER_SETTINGS,
+    pageCount: pageCountForSave,
   });
 
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const documentId = searchParams.get('id');
-
-  // Cover State
-  const [coverSettings, setCoverSettings] = useState<CoverSettings>(DEFAULT_COVER_SETTINGS);
-
-  // --- Pagination Algorithm ---
   const { pages, measureRef, blocks } = useSmartPagination({
     markdown,
     theme: currentTheme,
@@ -112,260 +61,43 @@ const EditorContent: React.FC = () => {
     paddingYOffset: -CONTENT_PADDING_TOP_BOTTOM_REDUCTION * 2,
   });
 
-  const exportTargetIds = React.useMemo(() => {
-    const ids: string[] = [];
-    if (coverSettings.enabled) ids.push('cover');
-    for (let i = 0; i < pages.length; i++) ids.push(`page-${i}`);
-    return ids;
-  }, [coverSettings.enabled, pages.length]);
+  useEffect(() => {
+    setPageCountForSave(pages.length);
+  }, [pages.length]);
+
+  const {
+    isExporting,
+    exportProgress,
+    isExportModalOpen,
+    setIsExportModalOpen,
+    exportStatus,
+    exportNotice,
+    failedPages,
+    exportTargetIds,
+    selectedExportIds,
+    toggleExportSelection,
+    selectAllExportTargets,
+    clearAllExportTargets,
+    resetExportSelections,
+    requestCancelExport,
+    closeExportModal,
+    handleExport,
+  } = useExportSlides({
+    exportContainerRef,
+    includeCover: coverSettings.enabled,
+    pageCount: pages.length,
+  });
 
   useEffect(() => {
-    setExcludedExportIds((prev) => prev.filter((id) => exportTargetIds.includes(id)));
-  }, [exportTargetIds]);
-
-  const selectedExportIds = React.useMemo(() => {
-    const excluded = new Set(excludedExportIds);
-    return exportTargetIds.filter((id) => !excluded.has(id));
-  }, [excludedExportIds, exportTargetIds]);
-
-  const toggleExportSelection = (id: string) => {
-    setExcludedExportIds((prev) => (
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    ));
-  };
-
-  const selectAllExportTargets = () => setExcludedExportIds([]);
-  const clearAllExportTargets = () => setExcludedExportIds(exportTargetIds);
-
-  const resetEditorDocument = useCallback(() => {
-    currentDocumentIdRef.current = null;
-    setMarkdown('');
-    setCurrentTheme(THEMES[0]);
-    setCoverSettings(DEFAULT_COVER_SETTINGS);
-    setExcludedExportIds([]);
     setActiveTab('editor');
-  }, []);
+    resetExportSelections();
+  }, [documentRevision, resetExportSelections]);
 
-  // --- Load by ?id= or reset to a new blank document ---
-  useEffect(() => {
-    if (documentId) {
-      const doc = getDocumentById(documentId);
-      if (doc) {
-        setMarkdown(doc.markdown);
-        setCoverSettings(normalizeCoverSettings(doc.coverSettings as Partial<CoverSettingsStored>));
-        const theme = THEMES.find((t) => t.id === doc.themeId);
-        if (theme) setCurrentTheme(theme);
-        currentDocumentIdRef.current = doc.id;
-        setExcludedExportIds([]);
-        return;
-      }
-    }
-
-    resetEditorDocument();
-  }, [documentId, resetEditorDocument]);
-
-  const handleCreateNewDocument = useCallback(() => {
-    resetEditorDocument();
-    if (documentId) {
-      router.push('/draft');
-    }
-  }, [documentId, resetEditorDocument, router]);
-
-  const flushRecentEdit = useCallback(() => {
-    const { markdown: md, coverSettings: coverStored, themeId, pageCount } = latestStateRef.current;
-    if (md.trim().length === 0) return;
-
-    const id = currentDocumentIdRef.current ?? generateDocId();
-    if (!currentDocumentIdRef.current) currentDocumentIdRef.current = id;
-
-    saveRecentEdit({
-      id,
-      title: titleFromMarkdown(md),
-      subtitle: subtitleFromMarkdown(md),
-      markdown: md,
-      coverSettings: coverStored,
-      themeId,
-      pageCount,
-    });
-  }, []);
-
-  // --- Persist recent edits (debounced) ---
-  useEffect(() => {
-    const coverStored: CoverSettingsStored = {
-      enabled: coverSettings.enabled,
-      title: coverSettings.title,
-      subtitle: coverSettings.subtitle,
-      author: coverSettings.author,
-      variant: coverSettings.variant,
-      showPageNumber: coverSettings.showPageNumber,
-    };
-    latestStateRef.current = {
-      markdown,
-      coverSettings: coverStored,
-      themeId: currentTheme.id,
-      pageCount: pages.length,
-    };
-
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(flushRecentEdit, 800);
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    };
-  }, [markdown, coverSettings, currentTheme.id, pages.length, flushRecentEdit]);
-
-  // Flush the latest edit before route change/unmount so Home can read recent edits immediately.
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-      flushRecentEdit();
-    };
-  }, [flushRecentEdit]);
-
-  // --- Export Logic ---
-  const yieldToMain = () => new Promise<void>((r) => setTimeout(r, 0));
-  const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) =>
-    new Promise<T>((resolve, reject) => {
-      const timer = window.setTimeout(() => {
-        reject(new Error(`${label} 超时`));
-      }, ms);
-      promise
-        .then((v) => {
-          window.clearTimeout(timer);
-          resolve(v);
-        })
-        .catch((err) => {
-          window.clearTimeout(timer);
-          reject(err);
-        });
-    });
-
-  const requestCancelExport = () => {
-    if (!isExporting) return;
-    cancelExportRef.current = true;
-    setExportStatus('canceling');
-    setExportNotice('正在取消，当前图片处理完成后将停止。');
-  };
-
-  const closeExportModal = () => {
-    if (isExporting) {
-      setIsExportModalOpen(false);
-      return;
-    }
-    setIsExportModalOpen(false);
-    setExportStatus('idle');
-    setExportProgress(null);
-    setExportNotice('');
-    setFailedPages([]);
-  };
-
-  const handleExport = async () => {
-    if (isExporting) return;
-
-    const exportContainer = exportContainerRef.current;
-    if (!exportContainer) return;
-
-    const selectedSet = new Set(selectedExportIds);
-    const pageElements = Array.from(
-      exportContainer.querySelectorAll<HTMLElement>('.export-card')
-    ).filter((el) => {
-      const id = el.dataset.exportId;
-      return typeof id === 'string' && selectedSet.has(id);
-    });
-    const total = pageElements.length;
-    if (total === 0) {
-      alert('请先在预览区勾选需要导出的页面。');
-      return;
-    }
-
-    cancelExportRef.current = false;
-    setFailedPages([]);
-    setExportNotice('');
-    setExportStatus('running');
-    setIsExportModalOpen(true);
-    setIsExporting(true);
-    setExportProgress({ done: 0, total });
-    try {
-      if (typeof document !== 'undefined' && 'fonts' in document) {
-        await (document as Document & { fonts?: FontFaceSet }).fonts?.ready;
-      }
-
-      const zip = new JSZip();
-      const failedIndexes: number[] = [];
-      let successCount = 0;
-
-      for (let i = 0; i < pageElements.length; i++) {
-        if (cancelExportRef.current) break;
-
-        const el = pageElements[i] as HTMLElement;
-        try {
-          const dataUrl = await withTimeout(
-            toPng(el, {
-              pixelRatio: EXPORT_SCALE,
-              cacheBust: true,
-              skipAutoScale: true,
-            }),
-            EXPORT_TIMEOUT_MS,
-            `第 ${i + 1} 张图片导出`
-          );
-          const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-          const fileName = `slide-${String(i).padStart(2, '0')}.png`;
-          zip.file(fileName, base64Data, { base64: true });
-          successCount += 1;
-          setExportProgress({ done: successCount, total });
-        } catch (err) {
-          console.error(`Export page ${i + 1} failed`, err);
-          failedIndexes.push(i + 1);
-        }
-        await yieldToMain();
-      }
-
-      const wasCanceled = cancelExportRef.current;
-      if (successCount > 0) {
-        const content = await zip.generateAsync({ type: "blob" });
-        const zipName = wasCanceled ? "rednote-slides-partial.zip" : "rednote-slides.zip";
-        FileSaver.saveAs(content, zipName);
-      }
-
-      setFailedPages(failedIndexes);
-      if (wasCanceled) {
-        setExportStatus('canceled');
-        setExportNotice(
-          successCount > 0
-            ? `已取消导出，已完成 ${successCount}/${total} 张，并已下载部分结果。`
-            : '已取消导出，未生成可下载图片。'
-        );
-      } else if (successCount === 0) {
-        setExportStatus('error');
-        setExportNotice('导出失败，未生成任何图片。');
-      } else if (failedIndexes.length > 0) {
-        setExportStatus('completed');
-        setExportNotice(`导出完成：成功 ${successCount}/${total} 张，失败 ${failedIndexes.length} 张。`);
-      } else {
-        setExportStatus('completed');
-        setExportNotice('导出完成，图片已下载。');
-      }
-    } catch (err) {
-      console.error("Export failed", err);
-      setExportStatus('error');
-      setExportNotice('导出出现异常，请重试或降低内容复杂度后再导出。');
-    } finally {
-      setIsExporting(false);
-      cancelExportRef.current = false;
-    }
-  };
-
-  // Helper styles wrapper
   const themeStyles = getThemeStyles(currentTheme);
   const contentPadding = `calc(var(--theme-padding) - ${CONTENT_PADDING_TOP_BOTTOM_REDUCTION}px) calc(var(--theme-padding) - ${CONTENT_PADDING_LEFT_RIGHT_REDUCTION}px)`;
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 overflow-hidden text-slate-800">
-
-      {/* --- Top Bar --- */}
       <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm relative">
         <Link href="/" className="flex items-center gap-2 hover:opacity-90">
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
@@ -431,20 +163,16 @@ const EditorContent: React.FC = () => {
         </div>
       </header>
 
-      {/* --- Main Area (3 Columns) --- */}
       <main className="flex-1 flex overflow-hidden">
-
-        {/* 1. Left Column: Editor & Settings */}
         <div className="flex-1 min-w-[350px] border-r border-neutral-200 bg-white flex flex-col shrink-0 relative z-30">
-          {/* Tab Navigation */}
           <div className="flex border-b border-neutral-200">
             <button
               onClick={() => setActiveTab('editor')}
               className={cn(
-                "flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
+                'flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors',
                 activeTab === 'editor'
-                  ? "border-red-500 text-red-600 bg-red-50/50"
-                  : "border-transparent text-slate-500 hover:bg-slate-50"
+                  ? 'border-red-500 text-red-600 bg-red-50/50'
+                  : 'border-transparent text-slate-500 hover:bg-slate-50'
               )}
             >
               <PenTool size={16} /> 编辑
@@ -452,42 +180,36 @@ const EditorContent: React.FC = () => {
             <button
               onClick={() => setActiveTab('cover')}
               className={cn(
-                "flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
+                'flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors',
                 activeTab === 'cover'
-                  ? "border-red-500 text-red-600 bg-red-50/50"
-                  : "border-transparent text-slate-500 hover:bg-slate-50"
+                  ? 'border-red-500 text-red-600 bg-red-50/50'
+                  : 'border-transparent text-slate-500 hover:bg-slate-50'
               )}
             >
               <Layout size={16} /> 封面
             </button>
           </div>
 
-          {/* Tab Content: Editor */}
           {activeTab === 'editor' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               <EditorHeader
                 onImportClick={() => setIsImportModalOpen(true)}
                 onNewClick={handleCreateNewDocument}
               />
-              <EditorToolbar
-                textareaRef={textareaRef}
-                setMarkdown={setMarkdown}
-              />
+              <EditorToolbar textareaRef={textareaRef} setMarkdown={setMarkdown} />
               <textarea
                 ref={textareaRef}
                 className="flex-1 w-full p-6 resize-none focus:outline-none font-mono text-sm leading-relaxed text-slate-700 bg-slate-50/30"
                 value={markdown}
-                onChange={(e) => setMarkdown(e.target.value)}
+                onChange={(event) => setMarkdown(event.target.value)}
                 placeholder="在这里输入 Markdown 内容..."
                 spellCheck={false}
               />
             </div>
           )}
 
-          {/* Tab Content: Cover Settings */}
           {activeTab === 'cover' && (
             <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto bg-neutral-50/50">
-              {/* Toggle Enable */}
               <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
                 <span className="font-medium text-slate-700 text-sm">启用封面页</span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -495,9 +217,9 @@ const EditorContent: React.FC = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={coverSettings.enabled}
-                    onChange={(e) => setCoverSettings(prev => ({ ...prev, enabled: e.target.checked }))}
+                    onChange={(event) => setCoverSettings((prev) => ({ ...prev, enabled: event.target.checked }))}
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
                 </label>
               </div>
 
@@ -508,9 +230,9 @@ const EditorContent: React.FC = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={coverSettings.showPageNumber}
-                    onChange={(e) => setCoverSettings(prev => ({ ...prev, showPageNumber: e.target.checked }))}
+                    onChange={(event) => setCoverSettings((prev) => ({ ...prev, showPageNumber: event.target.checked }))}
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
                 </label>
               </div>
 
@@ -522,7 +244,7 @@ const EditorContent: React.FC = () => {
                       <input
                         type="text"
                         value={coverSettings.title}
-                        onChange={(e) => setCoverSettings(prev => ({ ...prev, title: e.target.value }))}
+                        onChange={(event) => setCoverSettings((prev) => ({ ...prev, title: event.target.value }))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
                         placeholder="输入主标题"
                       />
@@ -532,7 +254,7 @@ const EditorContent: React.FC = () => {
                       <textarea
                         rows={2}
                         value={coverSettings.subtitle}
-                        onChange={(e) => setCoverSettings(prev => ({ ...prev, subtitle: e.target.value }))}
+                        onChange={(event) => setCoverSettings((prev) => ({ ...prev, subtitle: event.target.value }))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm resize-none"
                         placeholder="输入副标题或说明"
                       />
@@ -542,7 +264,7 @@ const EditorContent: React.FC = () => {
                       <input
                         type="text"
                         value={coverSettings.author}
-                        onChange={(e) => setCoverSettings(prev => ({ ...prev, author: e.target.value }))}
+                        onChange={(event) => setCoverSettings((prev) => ({ ...prev, author: event.target.value }))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
                         placeholder="@你的昵称"
                       />
@@ -555,12 +277,12 @@ const EditorContent: React.FC = () => {
                       {(['simple', 'modern', 'outline'] as const).map((variant) => (
                         <button
                           key={variant}
-                          onClick={() => setCoverSettings(prev => ({ ...prev, variant }))}
+                          onClick={() => setCoverSettings((prev) => ({ ...prev, variant }))}
                           className={cn(
-                            "py-2 px-1 rounded-lg border-2 text-xs font-medium capitalize transition-all",
+                            'py-2 px-1 rounded-lg border-2 text-xs font-medium capitalize transition-all',
                             coverSettings.variant === variant
-                              ? "border-red-500 bg-red-50 text-red-700"
-                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                              ? 'border-red-500 bg-red-50 text-red-700'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                           )}
                         >
                           {variant === 'simple' ? '简约' : variant === 'modern' ? '现代' : '描边'}
@@ -574,12 +296,7 @@ const EditorContent: React.FC = () => {
           )}
         </div>
 
-        {/* 2. Middle Column: Live Preview */}
-        <div
-          className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner"
-        >
-
-          {/* Render Cover Card First */}
+        <div className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner">
           {coverSettings.enabled && (
             <div className="relative">
               <CoverCard
@@ -601,46 +318,38 @@ const EditorContent: React.FC = () => {
             </div>
           )}
 
-          {/* Rendering Pages */}
-          {pages.map((pageContent, idx) => (
+          {pages.map((pageContent, index) => (
             <div
-              key={idx}
-              id={`page-${idx}`}
+              key={index}
+              id={`page-${index}`}
               className="preview-card shrink-0 relative shadow-2xl transition-transform hover:scale-[1.01] duration-300 ease-out origin-center overflow-hidden"
               style={{
                 width: `${CARD_WIDTH}px`,
                 height: `${CARD_HEIGHT}px`,
-                ...themeStyles as React.CSSProperties, // Apply CSS Variables
-                // Apply container styles directly as well for html-to-image compatibility
+                ...themeStyles,
                 background: 'var(--theme-bg)',
-                backgroundImage: 'var(--theme-bg-image)', // Apply new background image var
-                backgroundSize: '20px 20px, 100% 100%', // Default size for patterns (dots)
+                backgroundImage: 'var(--theme-bg-image)',
+                backgroundSize: '20px 20px, 100% 100%',
                 backgroundRepeat: 'repeat, no-repeat',
                 padding: contentPadding,
                 borderRadius: 'var(--theme-radius)',
                 border: 'var(--theme-border)',
               }}
             >
-
-
               <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
                 <label className="absolute top-1 right-1 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
                   <input
                     type="checkbox"
                     className="h-3.5 w-3.5 accent-slate-800"
-                    checked={selectedExportIds.includes(`page-${idx}`)}
-                    onChange={() => toggleExportSelection(`page-${idx}`)}
+                    checked={selectedExportIds.includes(`page-${index}`)}
+                    onChange={() => toggleExportSelection(`page-${index}`)}
                     disabled={isExporting}
                   />
-                  第 {idx + 1} 页
+                  第 {index + 1} 页
                 </label>
 
-                {/* Optional Theme Header */}
-                {currentTheme.container.headerStyle === 'iphone' && (
-                  <IPhoneHeader />
-                )}
+                {currentTheme.container.headerStyle === 'iphone' && <IPhoneHeader />}
 
-                {/* Page Content */}
                 <div className="flex-1">
                   {pageContent.map((block) => (
                     <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
@@ -649,42 +358,35 @@ const EditorContent: React.FC = () => {
 
                 {coverSettings.showPageNumber && (
                   <div className="mt-auto pt-0.5 opacity-40 text-[9px] leading-none font-sans">
-                    <span>{idx + 1} / {pages.length}</span>
+                    <span>{index + 1} / {pages.length}</span>
                   </div>
                 )}
               </div>
             </div>
           ))}
 
-          <div className="h-20" /> {/* Spacer */}
+          <div className="h-20" />
         </div>
 
-        {/* 3. Right Column: Theme Sidebar */}
-        <ThemeSidebar
-          currentTheme={currentTheme}
-          onSelect={setCurrentTheme}
-        />
-
+        <ThemeSidebar currentTheme={currentTheme} onSelect={setCurrentTheme} />
       </main>
 
-      {/* --- Hidden Measurement Container --- */}
       <div
         ref={measureRef}
         className="fixed top-0 -left-[9999px] -z-50 opacity-0 pointer-events-none"
         aria-hidden="true"
         style={{
           width: `${CARD_WIDTH}px`,
-          ...themeStyles as React.CSSProperties,
+          ...themeStyles,
           fontFamily: 'var(--theme-font)',
           padding: contentPadding,
         }}
       >
-        {blocks.map(block => (
+        {blocks.map((block) => (
           <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
         ))}
       </div>
 
-      {/* Import Modal */}
       <ImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
@@ -694,7 +396,6 @@ const EditorContent: React.FC = () => {
         }}
       />
 
-      {/* Dedicated offscreen export source to avoid preview DOM interference */}
       <div
         ref={exportContainerRef}
         className="fixed -left-[99999px] top-0 -z-50 opacity-0 pointer-events-none"
@@ -711,14 +412,14 @@ const EditorContent: React.FC = () => {
           </div>
         )}
 
-        {pages.map((pageContent, idx) => (
-          <div key={`export-page-${idx}`} className="export-card" data-export-id={`page-${idx}`}>
+        {pages.map((pageContent, index) => (
+          <div key={`export-page-${index}`} className="export-card" data-export-id={`page-${index}`}>
             <div
               className="shrink-0 relative overflow-hidden"
               style={{
                 width: `${CARD_WIDTH}px`,
                 height: `${CARD_HEIGHT}px`,
-                ...themeStyles as React.CSSProperties,
+                ...themeStyles,
                 background: 'var(--theme-bg)',
                 backgroundImage: 'var(--theme-bg-image)',
                 backgroundSize: '20px 20px, 100% 100%',
@@ -729,9 +430,7 @@ const EditorContent: React.FC = () => {
               }}
             >
               <div className="w-full h-full flex flex-col font-[family-name:var(--theme-font)]">
-                {currentTheme.container.headerStyle === 'iphone' && (
-                  <IPhoneHeader />
-                )}
+                {currentTheme.container.headerStyle === 'iphone' && <IPhoneHeader />}
 
                 <div className="flex-1">
                   {pageContent.map((block) => (
@@ -741,7 +440,7 @@ const EditorContent: React.FC = () => {
 
                 {coverSettings.showPageNumber && (
                   <div className="mt-auto pt-0.5 opacity-40 text-[9px] leading-none font-sans">
-                    <span>{idx + 1} / {pages.length}</span>
+                    <span>{index + 1} / {pages.length}</span>
                   </div>
                 )}
               </div>
@@ -750,7 +449,6 @@ const EditorContent: React.FC = () => {
         ))}
       </div>
 
-      {/* Export Progress Modal */}
       {isExportModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/45 p-4 flex items-center justify-center">
           <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white shadow-2xl">
@@ -847,19 +545,20 @@ const EditorContent: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
 
 export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col h-screen bg-neutral-100 items-center justify-center text-slate-500">
-        <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-        <p className="mt-3 text-sm">加载中...</p>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex flex-col h-screen bg-neutral-100 items-center justify-center text-slate-500">
+          <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+          <p className="mt-3 text-sm">加载中...</p>
+        </div>
+      }
+    >
       <EditorContent />
     </Suspense>
   );
