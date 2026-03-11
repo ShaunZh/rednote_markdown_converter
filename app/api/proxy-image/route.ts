@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { validateProxyImageUrl } from '../../../lib/server/urlGuards';
 
 export async function GET(request: Request) {
   const reqUrl = new URL(request.url);
-  const url = reqUrl.searchParams.get('url');
+  const rawUrl = reqUrl.searchParams.get('url');
 
-  if (!url) {
+  if (!rawUrl) {
     return new NextResponse('Missing URL parameter', { status: 400 });
   }
 
+  const parsedUrl = validateProxyImageUrl(rawUrl);
+  if (!parsedUrl) {
+    return new NextResponse('Unsupported image URL', { status: 400 });
+  }
+
   try {
-    const response = await axios.get(url, {
+    const response = await axios.get<ArrayBuffer>(parsedUrl.href, {
       responseType: 'arraybuffer',
       headers: {
         'Referer': 'https://mp.weixin.qq.com/',
@@ -20,6 +26,10 @@ export async function GET(request: Request) {
     });
 
     const contentType = response.headers['content-type'] || 'image/jpeg';
+    if (!contentType.startsWith('image/')) {
+      return new NextResponse('Unsupported content type', { status: 415 });
+    }
+
     const buffer = response.data;
 
     return new NextResponse(buffer, {
@@ -31,6 +41,6 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('Proxy Error:', error);
-    return new NextResponse('Failed to fetch image', { status: 500 });
+    return new NextResponse('Failed to fetch image', { status: 502 });
   }
 }

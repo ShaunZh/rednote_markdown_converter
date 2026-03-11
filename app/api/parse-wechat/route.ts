@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import TurndownService from 'turndown';
+import { validateWeChatArticleUrl } from '../../../lib/server/urlGuards';
 
 export async function POST(request: Request) {
   let step = 'INIT';
@@ -36,14 +37,15 @@ export async function POST(request: Request) {
     }
 
     step = 'VALIDATE_URL_OBJECT';
-    // Validate URL object construction specifically
-    try {
-      const parsedUrl = new URL(url);
-      url = parsedUrl.href; 
-      debugUrl = url;
-    } catch (e) {
-      return NextResponse.json({ error: `链接格式无效："${url}"，请检查是否输入有误。` }, { status: 400 });
+    const parsedUrl = validateWeChatArticleUrl(url);
+    if (!parsedUrl) {
+      return NextResponse.json(
+        { error: '仅支持导入 `https://mp.weixin.qq.com/...` 的微信公众号文章链接。' },
+        { status: 400 }
+      );
     }
+    url = parsedUrl.href;
+    debugUrl = url;
 
     step = 'FETCH_HTML';
     console.log(`[WeChat] Fetching: ${url.substring(0, 50)}...`);
