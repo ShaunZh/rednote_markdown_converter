@@ -20,6 +20,9 @@
 - [x] 收敛存储模型，只保留 `recent edits`
 - [x] `/draft` 在无 `id` 参数时重置为空白新文档
 - [x] 编辑器内加号按钮接为“新建笔记”
+- [x] 右栏封面信息已支持封面图本地上传与日期字段
+- [x] 正文图片默认改为浏览器本地存储，可选切换到 Cloudinary
+- [x] 导出链路已兼容本地正文图片，不再因 `blob:` 资源失败
 
 ### 已知现状
 
@@ -184,6 +187,53 @@
   - `hooks/useSmartPagination.ts`
 - 结果：
   - 降低预览区、测量区、导出区三份渲染带来的重算成本
+
+### Phase 5：图片资产与导出体验
+
+#### Task 10. 封面图字段落地
+
+- 优先级：P2
+- 状态：已完成
+- 文件：
+  - `components/CoverCard.tsx`
+  - `components/draft/DraftSettingsSidebar.tsx`
+  - `hooks/useDraftDocument.ts`
+  - `lib/draftStorage.ts`
+  - `lib/coverImage.ts`
+- 结果：
+  - 封面图改为右栏本地上传
+  - 浏览器端压缩后以 base64 持久化
+  - 导出与预览共用同一封面图数据
+
+#### Task 11. 正文图片本地化与可选云端上传
+
+- 优先级：P2
+- 状态：已完成
+- 文件：
+  - `components/EditorToolbar.tsx`
+  - `components/MarkdownRenderer.tsx`
+  - `components/LocalMarkdownImage.tsx`
+  - `lib/localImageStore.ts`
+  - `lib/imageUploadMode.ts`
+- 结果：
+  - 正文图片默认写入 `IndexedDB`
+  - Markdown 中仅保存本地图片引用
+  - 工具栏支持切换 `本地 / 云端`
+  - 未配置 Cloudinary 时自动退回本地模式
+
+#### Task 12. 导出兼容本地图片与字体
+
+- 优先级：P2
+- 状态：已完成
+- 文件：
+  - `components/draft/DraftPreviewPane.tsx`
+  - `hooks/useExportSlides.ts`
+  - `components/MarkdownRenderer.tsx`
+  - `lib/localImageStore.ts`
+- 结果：
+  - 导出容器中的本地图片切换为 `data URL`
+  - 预览与测量继续使用 `blob:` URL
+  - 导出时跳过 `html-to-image` 的字体内联，消除 Google Fonts 跨域控制台报错
 
 ---
 
