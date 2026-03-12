@@ -1,4 +1,5 @@
 import React from 'react';
+import type { AppearanceSettings } from '../lib/appearanceSettings';
 import { ThemeConfig, getThemeStyles } from '../lib/themeConfig';
 import { cn } from '../lib/utils';
 
@@ -18,9 +19,10 @@ interface CoverCardProps {
   theme: ThemeConfig;
   width: number;
   height: number;
+  appearanceSettings?: AppearanceSettings;
 }
 
-export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, height }) => {
+export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, height, appearanceSettings }) => {
   if (!settings.enabled) return null;
 
   const { title, subtitle, author, variant } = settings;
@@ -28,6 +30,7 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
   const titleText = title.trim();
   const hasCjk = /[\u3400-\u9fff]/.test(titleText);
   const titleLength = titleText.length;
+  const coverTitleSize = appearanceSettings?.coverTitleSize;
 
   const containerStyle = {
     width: `${width}px`,
@@ -59,10 +62,11 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
   );
 
   if (variant === 'simple') {
+    const simpleTitleSize = titleLength > 30
+      ? Math.max(24, (coverTitleSize ?? (hasCjk ? 34 : 36)) - 4)
+      : (coverTitleSize ?? (hasCjk ? 34 : 36));
     const simpleTitleClass = cn(
       "mb-5 font-semibold tracking-[-0.01em] break-words [display:-webkit-box] [-webkit-box-orient:vertical] overflow-hidden",
-      hasCjk ? "text-[34px] leading-[1.24]" : "text-[36px] leading-[1.16]",
-      titleLength > 30 && (hasCjk ? "text-[30px] leading-[1.28]" : "text-[32px] leading-[1.2]"),
       "[-webkit-line-clamp:4]"
     );
 
@@ -70,7 +74,14 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
       <Wrapper>
         <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
           <div className="mb-7 w-10 h-1 opacity-20 rounded-full" style={{ backgroundColor: 'var(--theme-text-color)' }} />
-          <h1 className={simpleTitleClass} style={{ color: 'var(--theme-title-color)' }}>
+          <h1
+            className={simpleTitleClass}
+            style={{
+              color: 'var(--theme-title-color)',
+              fontSize: `${simpleTitleSize}px`,
+              lineHeight: titleLength > 30 ? (hasCjk ? 1.28 : 1.2) : (hasCjk ? 1.24 : 1.16),
+            }}
+          >
             {title || "在这里填写标题"}
           </h1>
           <p className="text-base opacity-72 mb-12 max-w-[85%] leading-relaxed [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical] overflow-hidden">
@@ -85,10 +96,11 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
   }
 
   if (variant === 'modern') {
+    const modernTitleSize = titleLength > 34
+      ? Math.max(24, (coverTitleSize ?? (hasCjk ? 32 : 38)) - 4)
+      : (coverTitleSize ?? (hasCjk ? 32 : 38));
     const modernTitleClass = cn(
       "mb-5 font-semibold tracking-[-0.015em] break-words [display:-webkit-box] [-webkit-box-orient:vertical] overflow-hidden",
-      hasCjk ? "text-[32px] leading-[1.22]" : "text-[38px] leading-[1.12]",
-      titleLength > 34 && (hasCjk ? "text-[28px] leading-[1.27]" : "text-[34px] leading-[1.16]"),
       "[-webkit-line-clamp:5]"
     );
 
@@ -108,7 +120,14 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
                 {author}
               </span>
             )}
-            <h1 className={modernTitleClass} style={{ color: 'var(--theme-title-color)' }}>
+            <h1
+              className={modernTitleClass}
+              style={{
+                color: 'var(--theme-title-color)',
+                fontSize: `${modernTitleSize}px`,
+                lineHeight: titleLength > 34 ? (hasCjk ? 1.27 : 1.16) : (hasCjk ? 1.22 : 1.12),
+              }}
+            >
               {title || "现代风标题"}
             </h1>
             <div className="w-12 h-1 mb-5 rounded-full" style={{ backgroundColor: 'var(--theme-accent)' }} />
@@ -122,6 +141,7 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
   }
 
   // Outline Variant
+  const outlineTitleSize = coverTitleSize ?? 34;
   return (
     <Wrapper>
       <div className="w-full h-full p-5">
@@ -138,7 +158,10 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
           </div>
 
           <div className="my-auto">
-            <h1 className="text-[34px] leading-[1.2] font-serif italic mb-5 break-words [display:-webkit-box] [-webkit-line-clamp:4] [-webkit-box-orient:vertical] overflow-hidden" style={{ color: 'var(--theme-title-color)' }}>
+            <h1
+              className="font-serif italic mb-5 break-words [display:-webkit-box] [-webkit-line-clamp:4] [-webkit-box-orient:vertical] overflow-hidden"
+              style={{ color: 'var(--theme-title-color)', fontSize: `${outlineTitleSize}px`, lineHeight: 1.2 }}
+            >
               {title || "封面标题"}
             </h1>
             {subtitle && (

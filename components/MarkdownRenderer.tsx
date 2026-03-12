@@ -3,12 +3,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import type { AppearanceSettings } from '../lib/appearanceSettings';
 import { ThemeConfig } from '../lib/themeConfig';
 import { cn } from '../lib/utils';
 
 interface MarkdownRendererProps {
   content: string;
   theme: ThemeConfig;
+  appearanceSettings?: AppearanceSettings;
 }
 
 const MacWindowHeader = () => (
@@ -19,9 +21,18 @@ const MacWindowHeader = () => (
   </div>
 );
 
-const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, theme }) => {
+const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, theme, appearanceSettings }) => {
+  const defaultBodyFontSize = Number.parseFloat(theme.typography.baseFontSize || '16');
+  const bodyFontSize = appearanceSettings?.bodyFontSize ?? (Number.isFinite(defaultBodyFontSize) ? defaultBodyFontSize : 16);
+  const headingScale = appearanceSettings?.headingScale ?? 1;
   const baseLineHeight = Number.parseFloat(theme.typography.lineHeight || '1.6');
   const contentLineHeight = Math.min(2.1, Number.isFinite(baseLineHeight) ? baseLineHeight + 0.06 : 1.66);
+  const paragraphFontSize = Math.max(12, bodyFontSize - 1);
+  const listFontSize = Math.max(12, bodyFontSize - 0.5);
+  const codeFontSize = Math.max(12, bodyFontSize - 2);
+  const h1Size = Math.max(20, bodyFontSize * 1.42 * headingScale);
+  const h2Size = Math.max(18, bodyFontSize * 1.18 * headingScale);
+  const h3Size = Math.max(16, bodyFontSize * 1.06 * headingScale);
 
   // Use CSS variables for everything to ensure dynamic theming
   const components = {
@@ -37,8 +48,8 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
       if (!inline && match) {
         return (
           <div
-            className="rounded-lg overflow-hidden my-3 text-xs shadow-sm border border-[var(--theme-border)]"
-            style={{ backgroundColor: 'var(--code-bg)' }}
+            className="rounded-lg overflow-hidden my-3 shadow-sm border border-[var(--theme-border)]"
+            style={{ backgroundColor: 'var(--code-bg)', fontSize: `${codeFontSize}px` }}
           >
             {(isMacStyle || isDarkTheme) && !hideHeader && (
               <div className="px-3 py-2 border-b border-black/5 bg-black/5">
@@ -67,11 +78,12 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
       }
       return (
         <code
-          className="px-1.5 py-0.5 rounded text-[0.9em] font-mono mx-0.5"
+          className="px-1.5 py-0.5 rounded font-mono mx-0.5"
           style={{
             backgroundColor: 'var(--code-bg)',
             color: 'var(--code-text)',
-            border: theme.id === 'minimal' ? '1px solid #e2e8f0' : 'none'
+            border: theme.id === 'minimal' ? '1px solid #e2e8f0' : 'none',
+            fontSize: `${Math.max(11, paragraphFontSize * 0.92)}px`,
           }}
           {...props}
         >
@@ -81,35 +93,36 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
     },
     h1: ({ node, ...props }: any) => (
       <h1
-        className="text-[23px] font-bold mb-2 mt-1"
-        style={{ color: 'var(--theme-title-color)' }}
+        className="font-bold mb-2 mt-1"
+        style={{ color: 'var(--theme-title-color)', fontSize: `${h1Size}px`, lineHeight: 1.12 }}
         {...props}
       />
     ),
     h2: ({ node, ...props }: any) => (
       <h2
         className={cn(
-          "text-[19px] font-bold mb-2 mt-2.5",
+          "font-bold mb-2 mt-2.5",
           theme.id === 'minimal' && "pb-2 border-b border-slate-200",
           theme.id === 'geek' && "border-l-4 pl-3 border-[var(--theme-accent)]"
         )}
-        style={{ color: 'var(--theme-title-color)' }}
+        style={{ color: 'var(--theme-title-color)', fontSize: `${h2Size}px`, lineHeight: 1.18 }}
         {...props}
       />
     ),
     h3: ({ node, ...props }: any) => (
       <h3
-        className="text-[17px] font-bold mb-1.5 mt-2"
-        style={{ color: 'var(--theme-title-color)' }}
+        className="font-bold mb-1.5 mt-2"
+        style={{ color: 'var(--theme-title-color)', fontSize: `${h3Size}px`, lineHeight: 1.22 }}
         {...props}
       />
     ),
     p: ({ node, ...props }: any) => (
       <p
-        className="mb-3 text-[calc(var(--theme-text-base)-1px)]"
+        className="mb-3"
         style={{
           color: 'var(--theme-text-color)',
           lineHeight: contentLineHeight,
+          fontSize: `${paragraphFontSize}px`,
         }}
         {...props}
       />
@@ -124,12 +137,17 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
               : "list-disc pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]",
             className
           )}
+          style={{ fontSize: `${listFontSize}px` }}
           {...props}
         />
       );
     },
     ol: ({ node, className, ...props }: any) => (
-      <ol className={cn("list-decimal pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]", className)} {...props} />
+      <ol
+        className={cn("list-decimal pl-[18px] mb-2.5 space-y-0.5 marker:text-[var(--theme-accent)]", className)}
+        style={{ fontSize: `${listFontSize}px` }}
+        {...props}
+      />
     ),
     li: ({ node, className, ...props }: any) => (
       <li
@@ -141,6 +159,7 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
         style={{
           color: 'var(--theme-text-color)',
           lineHeight: contentLineHeight,
+          fontSize: `${listFontSize}px`,
         }}
         {...props}
       />
@@ -162,14 +181,16 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
     blockquote: ({ node, ...props }: any) => (
       <blockquote
         className={cn(
-          "pl-3.5 py-2 my-2.5 italic text-sm opacity-90 relative",
+          "pl-3.5 py-2 my-2.5 italic opacity-90 relative",
           theme.components.blockquote.style === 'card' && "rounded-lg pr-4 shadow-sm",
           theme.components.blockquote.style === 'bar' && "border-l-4"
         )}
         style={{
           backgroundColor: 'var(--quote-bg)',
           borderColor: 'var(--quote-accent)',
-          color: 'var(--theme-text-color)'
+          color: 'var(--theme-text-color)',
+          fontSize: `${Math.max(12, bodyFontSize - 1)}px`,
+          lineHeight: contentLineHeight,
         }}
         {...props}
       />
@@ -191,8 +212,8 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
     table: ({ node, className, ...props }: any) => (
       <div className="my-3 overflow-x-auto">
         <table
-          className={cn("w-full border-collapse text-[0.95em]", className)}
-          style={{ border: '1px solid var(--theme-border)' }}
+          className={cn("w-full border-collapse", className)}
+          style={{ border: '1px solid var(--theme-border)', fontSize: `${Math.max(12, bodyFontSize * 0.95)}px` }}
           {...props}
         />
       </div>
@@ -247,6 +268,8 @@ export const MarkdownRenderer = React.memo(
   (prevProps, nextProps) => (
     prevProps.content === nextProps.content
     && prevProps.theme.id === nextProps.theme.id
+    && prevProps.appearanceSettings?.bodyFontSize === nextProps.appearanceSettings?.bodyFontSize
+    && prevProps.appearanceSettings?.headingScale === nextProps.appearanceSettings?.headingScale
   )
 );
 

@@ -68,9 +68,32 @@ const EditorContent: React.FC = () => {
     ));
   }, [setAppearanceSettings]);
 
+  const handleCoverTitleSizeChange = useCallback((coverTitleSize: number) => {
+    setAppearanceSettings((prev) => (
+      prev.coverTitleSize === coverTitleSize ? prev : { ...prev, coverTitleSize }
+    ));
+  }, [setAppearanceSettings]);
+
+  const handleBodyFontSizeChange = useCallback((bodyFontSize: number) => {
+    setAppearanceSettings((prev) => (
+      prev.bodyFontSize === bodyFontSize ? prev : { ...prev, bodyFontSize }
+    ));
+  }, [setAppearanceSettings]);
+
+  const handleHeadingScaleChange = useCallback((headingScale: number) => {
+    setAppearanceSettings((prev) => (
+      prev.headingScale === headingScale ? prev : { ...prev, headingScale }
+    ));
+  }, [setAppearanceSettings]);
+
   const canvasPreset = useMemo(
     () => getCanvasPresetConfig(appearanceSettings.canvasPreset),
     [appearanceSettings.canvasPreset]
+  );
+
+  const contentStyleSignature = useMemo(
+    () => `${appearanceSettings.bodyFontSize ?? 'auto'}:${appearanceSettings.headingScale ?? 'auto'}`,
+    [appearanceSettings.bodyFontSize, appearanceSettings.headingScale]
   );
 
   const { pages, measureRef, blocks } = useSmartPagination({
@@ -78,6 +101,7 @@ const EditorContent: React.FC = () => {
     theme: currentTheme,
     cardHeight: canvasPreset.height,
     includePageNumber: appearanceSettings.showPageNumber,
+    contentStyleSignature,
     paddingYOffset: -CONTENT_PADDING_TOP_BOTTOM_REDUCTION * 2,
   });
 
@@ -139,6 +163,7 @@ const EditorContent: React.FC = () => {
           cardHeight={canvasPreset.height}
           coverSettings={coverSettings}
           showPageNumber={appearanceSettings.showPageNumber}
+          appearanceSettings={appearanceSettings}
           currentTheme={currentTheme}
           pages={pages}
           blocks={blocks}
@@ -159,6 +184,9 @@ const EditorContent: React.FC = () => {
           setCoverSettings={setCoverSettings}
           appearanceSettings={appearanceSettings}
           onCanvasPresetChange={handleCanvasPresetChange}
+          onCoverTitleSizeChange={handleCoverTitleSizeChange}
+          onBodyFontSizeChange={handleBodyFontSizeChange}
+          onHeadingScaleChange={handleHeadingScaleChange}
           onShowPageNumberChange={handleShowPageNumberChange}
           isExporting={isExporting}
           exportProgress={exportProgress}

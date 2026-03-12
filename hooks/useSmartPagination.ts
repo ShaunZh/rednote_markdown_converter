@@ -17,6 +17,7 @@ interface UseSmartPaginationProps {
     theme: ThemeConfig;
     cardHeight: number;
     includePageNumber: boolean;
+    contentStyleSignature?: string;
     paddingYOffset?: number;
 }
 
@@ -25,6 +26,7 @@ export const useSmartPagination = ({
     theme,
     cardHeight,
     includePageNumber,
+    contentStyleSignature = '',
     paddingYOffset = 0,
 }: UseSmartPaginationProps) => {
     const measureRef = useRef<HTMLDivElement>(null);
@@ -100,7 +102,7 @@ export const useSmartPagination = ({
                 image.removeEventListener('error', handleImageEvent);
             });
         };
-    }, [blocks, theme, cardHeight, includePageNumber, paddingYOffset]);
+    }, [blocks, theme, cardHeight, includePageNumber, contentStyleSignature, paddingYOffset]);
 
     // Measurement & Pagination Effect
     // This effect runs whenever 'blocks' changes (including after a split), creating a recursive loop until stable.
@@ -135,7 +137,7 @@ export const useSmartPagination = ({
                 setPages(paginationResult.pages);
             }
         }
-    }, [blocks, cardHeight, includePageNumber, measurementVersion, paddingYOffset, pages, theme]);
+    }, [blocks, cardHeight, includePageNumber, contentStyleSignature, measurementVersion, paddingYOffset, pages, theme]);
 
     return {
         pages,

@@ -4,6 +4,7 @@ import { CoverCard, type CoverSettings } from '../CoverCard';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { IPhoneHeader } from '../ThemeHeaders';
 import type { Block } from '../../hooks/useSmartPagination';
+import type { AppearanceSettings } from '../../lib/appearanceSettings';
 import type { ThemeConfig } from '../../lib/themeConfig';
 
 interface DraftPreviewPaneProps {
@@ -11,6 +12,7 @@ interface DraftPreviewPaneProps {
   cardHeight: number;
   coverSettings: CoverSettings;
   showPageNumber: boolean;
+  appearanceSettings: AppearanceSettings;
   currentTheme: ThemeConfig;
   pages: Block[][];
   blocks: Block[];
@@ -32,6 +34,7 @@ const PageCard = React.memo(function PageCard({
   pageContent,
   pageIndex,
   totalPages,
+  appearanceSettings,
   selectedExportIds,
   toggleExportSelection,
   isExporting,
@@ -46,6 +49,7 @@ const PageCard = React.memo(function PageCard({
   pageContent: Block[];
   pageIndex: number;
   totalPages: number;
+  appearanceSettings: AppearanceSettings;
   selectedExportIds?: string[];
   toggleExportSelection?: (id: string) => void;
   isExporting?: boolean;
@@ -87,7 +91,12 @@ const PageCard = React.memo(function PageCard({
 
         <div className="flex-1">
           {pageContent.map((block) => (
-            <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
+            <MarkdownRenderer
+              key={block.id}
+              content={block.content}
+              theme={currentTheme}
+              appearanceSettings={appearanceSettings}
+            />
           ))}
         </div>
 
@@ -108,6 +117,7 @@ function DraftPreviewPaneComponent({
   cardHeight,
   coverSettings,
   showPageNumber,
+  appearanceSettings,
   currentTheme,
   pages,
   blocks,
@@ -130,6 +140,7 @@ function DraftPreviewPaneComponent({
               theme={currentTheme}
               width={cardWidth}
               height={cardHeight}
+              appearanceSettings={appearanceSettings}
             />
             <label className="absolute top-1 right-1 z-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] text-slate-700 shadow-sm cursor-pointer select-none">
               <input
@@ -158,6 +169,7 @@ function DraftPreviewPaneComponent({
               pageContent={pageContent}
               pageIndex={index}
               totalPages={pages.length}
+              appearanceSettings={appearanceSettings}
               selectedExportIds={selectedExportIds}
               toggleExportSelection={toggleExportSelection}
               isExporting={isExporting}
@@ -183,7 +195,12 @@ function DraftPreviewPaneComponent({
         }}
       >
         {blocks.map((block) => (
-          <MarkdownRenderer key={block.id} content={block.content} theme={currentTheme} />
+          <MarkdownRenderer
+            key={block.id}
+            content={block.content}
+            theme={currentTheme}
+            appearanceSettings={appearanceSettings}
+          />
         ))}
       </div>
 
@@ -196,13 +213,14 @@ function DraftPreviewPaneComponent({
           {coverSettings.enabled && (
             <div className="export-card" data-export-id="cover">
               <CoverCard
-                settings={coverSettings}
-                theme={currentTheme}
-                width={cardWidth}
-                height={cardHeight}
-              />
-            </div>
-          )}
+              settings={coverSettings}
+              theme={currentTheme}
+              width={cardWidth}
+              height={cardHeight}
+              appearanceSettings={appearanceSettings}
+            />
+          </div>
+        )}
 
           {pages.map((pageContent, index) => (
             <div key={`export-page-${index}`} className="export-card" data-export-id={`page-${index}`}>
@@ -213,6 +231,7 @@ function DraftPreviewPaneComponent({
                 pageContent={pageContent}
                 pageIndex={index}
                 totalPages={pages.length}
+                appearanceSettings={appearanceSettings}
                 showPageNumber={showPageNumber}
                 themeStyles={themeStyles}
                 contentPadding={contentPadding}

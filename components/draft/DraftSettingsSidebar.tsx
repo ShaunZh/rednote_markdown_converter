@@ -13,6 +13,9 @@ interface DraftSettingsSidebarProps {
   setCoverSettings: React.Dispatch<React.SetStateAction<CoverSettings>>;
   appearanceSettings: AppearanceSettings;
   onCanvasPresetChange: (canvasPreset: AppearanceSettings['canvasPreset']) => void;
+  onCoverTitleSizeChange: (size: number) => void;
+  onBodyFontSizeChange: (size: number) => void;
+  onHeadingScaleChange: (scale: number) => void;
   onShowPageNumberChange: (checked: boolean) => void;
   isExporting: boolean;
   exportProgress: { done: number; total: number } | null;
@@ -77,6 +80,9 @@ export function DraftSettingsSidebar({
   setCoverSettings,
   appearanceSettings,
   onCanvasPresetChange,
+  onCoverTitleSizeChange,
+  onBodyFontSizeChange,
+  onHeadingScaleChange,
   onShowPageNumberChange,
   isExporting,
   exportProgress,
@@ -88,6 +94,11 @@ export function DraftSettingsSidebar({
   onOpenExportModal,
   onExport,
 }: DraftSettingsSidebarProps) {
+  const defaultBodyFontSize = Number.parseFloat(currentTheme.typography.baseFontSize || '16');
+  const bodyFontSizeValue = appearanceSettings.bodyFontSize ?? (Number.isFinite(defaultBodyFontSize) ? defaultBodyFontSize : 16);
+  const coverTitleSizeValue = appearanceSettings.coverTitleSize ?? (coverSettings.variant === 'modern' ? 36 : 34);
+  const headingScaleValue = Math.round((appearanceSettings.headingScale ?? 1) * 100);
+
   return (
     <aside className="w-[340px] border-l border-neutral-200 bg-[#f5f5f4] shrink-0 h-full flex flex-col">
       <div className="border-b border-neutral-200 bg-white px-5 py-4">
@@ -307,20 +318,59 @@ export function DraftSettingsSidebar({
             checked={appearanceSettings.showPageNumber}
             onChange={onShowPageNumberChange}
           />
-          <div className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <div className="flex items-center justify-between text-sm text-slate-700">
-              <span className="font-medium">画布尺寸</span>
-              <span className="text-slate-500">
-                {CANVAS_PRESETS.find((preset) => preset.id === appearanceSettings.canvasPreset)?.label ?? appearanceSettings.canvasPreset}
-              </span>
+
+          <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-slate-700">
+                <span className="font-medium">封面字号</span>
+                <span className="text-slate-500 tabular-nums">{coverTitleSizeValue}px</span>
+              </div>
+              <input
+                type="range"
+                min="28"
+                max="48"
+                step="1"
+                value={coverTitleSizeValue}
+                onChange={(event) => onCoverTitleSizeChange(Number(event.target.value))}
+                className="w-full accent-slate-900"
+              />
             </div>
-            <p className="text-xs leading-5 text-slate-500">
-              下一步会把画布尺寸、字号滑块和标题缩放正式接进这个区域。
-            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-slate-700">
+                <span className="font-medium">正文字号</span>
+                <span className="text-slate-500 tabular-nums">{bodyFontSizeValue}px</span>
+              </div>
+              <input
+                type="range"
+                min="13"
+                max="20"
+                step="1"
+                value={bodyFontSizeValue}
+                onChange={(event) => onBodyFontSizeChange(Number(event.target.value))}
+                className="w-full accent-slate-900"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-slate-700">
+                <span className="font-medium">标题缩放</span>
+                <span className="text-slate-500 tabular-nums">{headingScaleValue}%</span>
+              </div>
+              <input
+                type="range"
+                min="85"
+                max="135"
+                step="5"
+                value={headingScaleValue}
+                onChange={(event) => onHeadingScaleChange(Number(event.target.value) / 100)}
+                className="w-full accent-slate-900"
+              />
+            </div>
           </div>
+
           <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3 text-xs leading-5 text-slate-500">
-            预留给后续参数：
-            <span className="ml-1">画布尺寸、封面字号、正文字号、标题缩放。</span>
+            当前这些参数是基于主题的文档级覆盖项，不会直接改写主题预设本身。
           </div>
         </Section>
       </div>
