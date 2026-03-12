@@ -10,7 +10,9 @@ const getBlocksSignature = (items: Block[]) =>
     items.map((block) => `${block.id}:${block.type}:${block.content}`).join('\u0001');
 
 const getPagesSignature = (items: Block[][]) =>
-    items.map((page) => page.map((block) => block.id).join('\u0002')).join('\u0003');
+    items
+        .map((page) => page.map((block) => `${block.id}:${block.type}:${block.content}`).join('\u0002'))
+        .join('\u0003');
 
 interface UseSmartPaginationProps {
     markdown: string;
