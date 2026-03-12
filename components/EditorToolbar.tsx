@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Bold,
   Italic,
@@ -21,11 +21,6 @@ import {
 } from 'lucide-react';
 
 import {
-  getStoredImageUploadMode,
-  setStoredImageUploadMode,
-  type ImageUploadMode,
-} from '../lib/imageUploadMode';
-import {
   createLocalImageMarkdownSrc,
   saveLocalImage,
 } from '../lib/localImageStore';
@@ -36,9 +31,6 @@ interface EditorToolbarProps {
   setMarkdown: (value: string) => void;
 }
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   textareaRef,
   setMarkdown,
@@ -48,19 +40,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isSyntaxModalOpen, setIsSyntaxModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>('local');
-  const cloudinaryEnabled = Boolean(CLOUD_NAME && UPLOAD_PRESET);
-
-  useEffect(() => {
-    const storedMode = getStoredImageUploadMode();
-    setImageUploadMode(cloudinaryEnabled && storedMode === 'cloudinary' ? 'cloudinary' : 'local');
-  }, [cloudinaryEnabled]);
-
-  const updateImageUploadMode = (mode: ImageUploadMode) => {
-    const nextMode = mode === 'cloudinary' && !cloudinaryEnabled ? 'local' : mode;
-    setImageUploadMode(nextMode);
-    setStoredImageUploadMode(nextMode);
-  };
 
   const insertImageMarkdown = (imageUrl: string, altText: string) => {
     const imageMarkdown = `![${altText}](${imageUrl})`;
@@ -88,36 +67,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     setIsUploading(true);
     try {
       const altText = file.name.replace(/\.[^.]+$/, '');
-
-      if (imageUploadMode === 'local') {
-        const localImageId = await saveLocalImage(file);
-        insertImageMarkdown(createLocalImageMarkdownSrc(localImageId), altText);
-      } else {
-        if (!CLOUD_NAME || !UPLOAD_PRESET) {
-          throw new Error('Cloudinary 配置缺失，请检查 .env.local');
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', UPLOAD_PRESET);
-
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-          { method: 'POST', body: formData }
-        );
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error?.message || '上传失败');
-        }
-
-        const data = await res.json();
-        const imageUrl: string = data.secure_url.replace(
-          '/upload/',
-          '/upload/w_700,c_scale/'
-        );
-        insertImageMarkdown(imageUrl, altText);
-      }
+      const localImageId = await saveLocalImage(file);
+      insertImageMarkdown(createLocalImageMarkdownSrc(localImageId), altText);
     } catch (error) {
       const message = error instanceof Error ? error.message : '图片上传失败';
       alert(`图片上传失败：${message}`);
@@ -289,36 +240,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           label="手动分页"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
-        <div className="flex items-center rounded-lg border border-neutral-200 bg-white p-0.5">
-          <button
-            type="button"
-            onClick={() => updateImageUploadMode('local')}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              imageUploadMode === 'local'
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-neutral-100'
-            }`}
-          >
-            本地
-          </button>
-          <button
-            type="button"
-            onClick={() => updateImageUploadMode('cloudinary')}
-            disabled={!cloudinaryEnabled}
-            title={cloudinaryEnabled ? '上传到 Cloudinary' : '当前未配置 Cloudinary'}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              imageUploadMode === 'cloudinary'
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-neutral-100'
-            } disabled:cursor-not-allowed disabled:opacity-40`}
-          >
-            云端
-          </button>
-        </div>
         <ToolbarButton
           icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
           onClick={() => !isUploading && imageInputRef.current?.click()}
-          label={isUploading ? '上传中...' : imageUploadMode === 'local' ? '插入本地图片' : '插入云端图片'}
+          label={isUploading ? '上传中...' : '插入图片'}
           disabled={isUploading}
         />
         <input
