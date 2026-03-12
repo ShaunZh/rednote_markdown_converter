@@ -45,6 +45,9 @@ export const CoverCard: React.FC<CoverCardProps> = ({ settings, theme, width, he
       style={{
         ...containerStyle,
         background: 'var(--theme-bg)',
+        backgroundImage: 'var(--theme-bg-image)',
+        backgroundSize: '20px 20px, 100% 100%',
+        backgroundRepeat: 'repeat, no-repeat',
         fontFamily: 'var(--theme-font)',
         color: 'var(--theme-text-color)',
         border: 'var(--theme-border)',

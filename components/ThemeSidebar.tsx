@@ -36,6 +36,9 @@ export const ThemeSidebar: React.FC<ThemeSidebarProps> = ({ currentTheme, onSele
                 className="w-full aspect-[4/3] relative p-4 flex flex-col gap-2 overflow-hidden"
                 style={{ 
                   background: theme.container.background,
+                  backgroundImage: theme.container.backgroundImage,
+                  backgroundSize: '20px 20px, 100% 100%',
+                  backgroundRepeat: 'repeat, no-repeat',
                   color: theme.typography.textColor
                 }}
               >

@@ -44,7 +44,7 @@ export interface ThemeConfig {
   };
 }
 
-// --- 2. The Themes (6 Presets) ---
+// --- 2. The Themes ---
 
 export const THEMES: ThemeConfig[] = [
   // 1. Minimal White (Default)
@@ -164,7 +164,7 @@ export const THEMES: ThemeConfig[] = [
     name: '复古纸张',
     type: 'pro',
     container: {
-      background: '#fdf6e3', // Solarized Light base / Old paper
+      background: '#fdf6e3',
       padding: '28px',
       radius: '2px',
       shadow: '1px 1px 5px rgba(0,0,0,0.1)',
@@ -178,7 +178,7 @@ export const THEMES: ThemeConfig[] = [
       textColor: '#5c4b37',
     },
     palette: {
-      accent: '#b58900', // Yellow/Gold
+      accent: '#b58900',
       secondary: '#d3ba7f',
     },
     components: {
@@ -189,7 +189,7 @@ export const THEMES: ThemeConfig[] = [
       },
       blockquote: {
         style: 'bar',
-        color: '#8b4513', // SaddleBrown
+        color: '#8b4513',
         background: 'rgba(139, 69, 19, 0.05)',
       },
     },
@@ -235,6 +235,47 @@ export const THEMES: ThemeConfig[] = [
     },
   },
 
+  // 6. Typst-inspired editorial theme
+  {
+    id: 'typst',
+    name: 'Typst 风',
+    type: 'free',
+    container: {
+      background: 'linear-gradient(180deg, #fffdf8 0%, #fff6ee 100%)',
+      backgroundImage: [
+        'radial-gradient(circle at top left, rgba(255, 135, 92, 0.18), transparent 34%)',
+        'radial-gradient(circle at bottom right, rgba(255, 203, 134, 0.22), transparent 28%)',
+        'linear-gradient(135deg, rgba(94, 62, 45, 0.06) 0, rgba(94, 62, 45, 0.06) 1px, transparent 1px, transparent 14px)',
+      ].join(', '),
+      padding: '30px',
+      radius: '26px',
+      shadow: '0 28px 50px -26px rgba(61, 34, 18, 0.38)',
+      border: '1px solid rgba(164, 104, 75, 0.18)',
+    },
+    typography: {
+      fontFamily: '"Inter", "Noto Sans SC", sans-serif',
+      baseFontSize: '16px',
+      lineHeight: '1.68',
+      titleColor: '#2f241d',
+      textColor: '#5a4a40',
+    },
+    palette: {
+      accent: '#e05a33',
+      secondary: '#d5b9a4',
+    },
+    components: {
+      codeBlock: {
+        style: 'simple',
+        background: 'rgba(118, 74, 49, 0.08)',
+        textColor: '#52372a',
+      },
+      blockquote: {
+        style: 'card',
+        color: '#e05a33',
+        background: 'rgba(224, 90, 51, 0.08)',
+      },
+    },
+  },
 ];
 
 // --- 3. Helper Function ---
