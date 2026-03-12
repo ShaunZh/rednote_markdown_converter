@@ -1,18 +1,15 @@
+import {
+  CLOUDINARY_IMAGE_HOSTS,
+  parseHttpsUrl,
+  WECHAT_IMAGE_HOSTS,
+} from '../proxyImage';
+
 const WECHAT_ARTICLE_HOSTS = new Set([
   'mp.weixin.qq.com',
 ]);
 
-const WECHAT_IMAGE_HOSTS = new Set([
-  'mmbiz.qpic.cn',
-  'mmbiz.qlogo.cn',
-  'res.wx.qq.com',
-  'wx.qlogo.cn',
-  'mp.weixin.qq.com',
-]);
-
-const CLOUDINARY_IMAGE_HOSTS = new Set([
-  'res.cloudinary.com',
-]);
+const WECHAT_IMAGE_HOSTS_SET = new Set<string>(WECHAT_IMAGE_HOSTS);
+const CLOUDINARY_IMAGE_HOSTS_SET = new Set<string>(CLOUDINARY_IMAGE_HOSTS);
 
 const LOCAL_HOSTS = new Set([
   'localhost',
@@ -37,15 +34,6 @@ function isPrivateIpv4(hostname: string): boolean {
   return false;
 }
 
-function parseHttpsUrl(rawUrl: string): URL | null {
-  try {
-    const parsed = new URL(rawUrl);
-    return parsed.protocol === 'https:' ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
 export function validateWeChatArticleUrl(rawUrl: string): URL | null {
   const parsed = parseHttpsUrl(rawUrl);
   if (!parsed) return null;
@@ -61,7 +49,7 @@ export function validateProxyImageUrl(rawUrl: string): URL | null {
     return null;
   }
 
-  if (WECHAT_IMAGE_HOSTS.has(hostname) || CLOUDINARY_IMAGE_HOSTS.has(hostname)) {
+  if (WECHAT_IMAGE_HOSTS_SET.has(hostname) || CLOUDINARY_IMAGE_HOSTS_SET.has(hostname)) {
     return parsed;
   }
 

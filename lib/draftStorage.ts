@@ -12,7 +12,9 @@ export interface CoverSettingsStored {
   enabled: boolean;
   title: string;
   subtitle: string;
+  date?: string;
   author: string;
+  coverImage?: string;
   variant: 'simple' | 'modern' | 'outline';
   showPageNumber: boolean;
 }

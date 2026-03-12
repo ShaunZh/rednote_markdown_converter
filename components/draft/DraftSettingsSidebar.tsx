@@ -1,8 +1,10 @@
-import React from 'react';
-import { Check, Download, Lock } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Check, Download, ImagePlus, Loader2, Lock, Trash2 } from 'lucide-react';
 
 import type { CoverSettings } from '../CoverCard';
 import { CANVAS_PRESETS, type AppearanceSettings } from '../../lib/appearanceSettings';
+import { fileToCoverImageDataUrl } from '../../lib/coverImage';
+import { getProxyImageSrc } from '../../lib/proxyImage';
 import { THEMES, type ThemeConfig } from '../../lib/themeConfig';
 import { cn } from '../../lib/utils';
 
@@ -98,6 +100,30 @@ export function DraftSettingsSidebar({
   const bodyFontSizeValue = appearanceSettings.bodyFontSize ?? (Number.isFinite(defaultBodyFontSize) ? defaultBodyFontSize : 16);
   const coverTitleSizeValue = appearanceSettings.coverTitleSize ?? (coverSettings.variant === 'modern' ? 36 : 34);
   const headingScaleValue = Math.round((appearanceSettings.headingScale ?? 1) * 100);
+  const coverImagePreviewSrc = getProxyImageSrc(coverSettings.coverImage);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessingCoverImage, setIsProcessingCoverImage] = useState(false);
+  const [coverImageError, setCoverImageError] = useState('');
+
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    setIsProcessingCoverImage(true);
+    setCoverImageError('');
+
+    try {
+      const dataUrl = await fileToCoverImageDataUrl(file);
+      setCoverSettings((prev) => ({ ...prev, coverImage: dataUrl }));
+    } catch (error) {
+      setCoverImageError(error instanceof Error ? error.message : '封面图处理失败，请重试');
+    } finally {
+      setIsProcessingCoverImage(false);
+    }
+  };
 
   return (
     <aside className="w-[340px] border-l border-neutral-200 bg-[#f5f5f4] shrink-0 h-full flex flex-col">
@@ -220,6 +246,66 @@ export function DraftSettingsSidebar({
 
             <div className="space-y-1.5">
               <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                封面图
+              </label>
+              <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                <input
+                  ref={coverImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverImageUpload}
+                />
+
+                <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+                  {coverImagePreviewSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={coverImagePreviewSrc}
+                      alt="封面图预览"
+                      className="h-36 w-full object-cover"
+                      crossOrigin={coverImagePreviewSrc.startsWith('data:image/') ? undefined : 'anonymous'}
+                    />
+                  ) : (
+                    <div className="flex h-36 items-center justify-center bg-[linear-gradient(#ececec_1px,transparent_1px),linear-gradient(90deg,#ececec_1px,transparent_1px)] [background-size:18px_18px] px-4 text-center text-sm text-slate-400">
+                      上传本地图片后会在这里预览
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => coverImageInputRef.current?.click()}
+                    disabled={isProcessingCoverImage}
+                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isProcessingCoverImage ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                    <span>{isProcessingCoverImage ? '处理中...' : '上传本地图片'}</span>
+                  </button>
+                  {coverSettings.coverImage.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCoverImageError('');
+                        setCoverSettings((prev) => ({ ...prev, coverImage: '' }));
+                      }}
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                      aria-label="清空封面图"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-[11px] leading-5 text-slate-500">
+                  图片会先压缩成适合封面的 JPG，再以 base64 保存在浏览器本地，上传后会立即显示在预览区和导出结果里。
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                 封面标题
               </label>
               <input
@@ -244,18 +330,45 @@ export function DraftSettingsSidebar({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                作者
-              </label>
-              <input
-                type="text"
-                value={coverSettings.author}
-                onChange={(event) => setCoverSettings((prev) => ({ ...prev, author: event.target.value }))}
-                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-slate-900"
-                placeholder="@你的昵称"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                  日期
+                </label>
+                <input
+                  type="text"
+                  value={coverSettings.date}
+                  onChange={(event) => setCoverSettings((prev) => ({ ...prev, date: event.target.value }))}
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-slate-900"
+                  placeholder="2026.03 / VOL.08"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                  作者
+                </label>
+                <input
+                  type="text"
+                  value={coverSettings.author}
+                  onChange={(event) => setCoverSettings((prev) => ({ ...prev, author: event.target.value }))}
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-slate-900"
+                  placeholder="@你的昵称"
+                />
+              </div>
             </div>
+
+            {coverImageError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-700">
+                {coverImageError}
+              </div>
+            )}
+
+            {!coverImagePreviewSrc && coverSettings.coverImage.trim() && !coverImageError && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700">
+                当前封面图无法显示，建议重新上传。
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">

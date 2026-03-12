@@ -26,7 +26,9 @@ const DEFAULT_COVER_SETTINGS: CoverSettings = {
   enabled: true,
   title: '小红书创作指南',
   subtitle: '几分钟做出更容易传播的内容',
+  date: '',
   author: '@小红书创作者',
+  coverImage: '',
   variant: 'simple',
   showPageNumber: true,
 };

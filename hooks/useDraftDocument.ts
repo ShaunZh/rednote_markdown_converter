@@ -29,6 +29,8 @@ const normalizeCoverSettings = (
 ): CoverSettings => ({
   ...defaultCoverSettings,
   ...input,
+  date: typeof input?.date === 'string' ? input.date : defaultCoverSettings.date,
+  coverImage: typeof input?.coverImage === 'string' ? input.coverImage : defaultCoverSettings.coverImage,
   variant: (input?.variant as CoverSettings['variant']) ?? defaultCoverSettings.variant,
 });
 
@@ -51,7 +53,9 @@ export function useDraftDocument({
       enabled: defaultCoverSettings.enabled,
       title: defaultCoverSettings.title,
       subtitle: defaultCoverSettings.subtitle,
+      date: defaultCoverSettings.date,
       author: defaultCoverSettings.author,
+      coverImage: defaultCoverSettings.coverImage,
       variant: defaultCoverSettings.variant as CoverSettingsStored['variant'],
       showPageNumber: defaultCoverSettings.showPageNumber,
     },
@@ -138,7 +142,9 @@ export function useDraftDocument({
         enabled: coverSettings.enabled,
         title: coverSettings.title,
         subtitle: coverSettings.subtitle,
+        date: coverSettings.date,
         author: coverSettings.author,
+        coverImage: coverSettings.coverImage,
         variant: coverSettings.variant,
         showPageNumber: coverSettings.showPageNumber,
       },
