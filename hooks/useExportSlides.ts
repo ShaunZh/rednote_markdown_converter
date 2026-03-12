@@ -4,21 +4,22 @@ import FileSaver from 'file-saver';
 import { toPng } from 'html-to-image';
 import JSZip from 'jszip';
 
-const CARD_WIDTH = 405;
-const EXPORT_TARGET_WIDTH = 1080;
-const EXPORT_SCALE = EXPORT_TARGET_WIDTH / CARD_WIDTH;
 const EXPORT_TIMEOUT_MS = 25000;
 
 export type ExportStatus = 'idle' | 'running' | 'canceling' | 'completed' | 'canceled' | 'error';
 
 interface UseExportSlidesProps {
   exportContainerRef: RefObject<HTMLDivElement>;
+  cardWidth: number;
+  exportTargetWidth: number;
   includeCover: boolean;
   pageCount: number;
 }
 
 export function useExportSlides({
   exportContainerRef,
+  cardWidth,
+  exportTargetWidth,
   includeCover,
   pageCount,
 }: UseExportSlidesProps) {
@@ -157,6 +158,7 @@ export function useExportSlides({
       const zip = new JSZip();
       const failedIndexes: number[] = [];
       let successCount = 0;
+      const exportScale = exportTargetWidth / cardWidth;
 
       for (let index = 0; index < pageElements.length; index += 1) {
         if (cancelExportRef.current) {
@@ -167,7 +169,7 @@ export function useExportSlides({
         try {
           const dataUrl = await withTimeout(
             toPng(element, {
-              pixelRatio: EXPORT_SCALE,
+              pixelRatio: exportScale,
               cacheBust: true,
               skipAutoScale: true,
             }),
@@ -221,7 +223,7 @@ export function useExportSlides({
       setShouldRenderExportContainer(false);
       cancelExportRef.current = false;
     }
-  }, [exportContainerRef, isExporting, selectedExportIds]);
+  }, [cardWidth, exportContainerRef, exportTargetWidth, isExporting, selectedExportIds]);
 
   return {
     isExporting,

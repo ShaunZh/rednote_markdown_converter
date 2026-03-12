@@ -10,6 +10,7 @@ interface DraftPreviewPaneProps {
   cardWidth: number;
   cardHeight: number;
   coverSettings: CoverSettings;
+  showPageNumber: boolean;
   currentTheme: ThemeConfig;
   pages: Block[][];
   blocks: Block[];
@@ -106,6 +107,7 @@ function DraftPreviewPaneComponent({
   cardWidth,
   cardHeight,
   coverSettings,
+  showPageNumber,
   currentTheme,
   pages,
   blocks,
@@ -159,7 +161,7 @@ function DraftPreviewPaneComponent({
               selectedExportIds={selectedExportIds}
               toggleExportSelection={toggleExportSelection}
               isExporting={isExporting}
-              showPageNumber={coverSettings.showPageNumber}
+              showPageNumber={showPageNumber}
               themeStyles={themeStyles}
               contentPadding={contentPadding}
             />
@@ -211,7 +213,7 @@ function DraftPreviewPaneComponent({
                 pageContent={pageContent}
                 pageIndex={index}
                 totalPages={pages.length}
-                showPageNumber={coverSettings.showPageNumber}
+                showPageNumber={showPageNumber}
                 themeStyles={themeStyles}
                 contentPadding={contentPadding}
               />

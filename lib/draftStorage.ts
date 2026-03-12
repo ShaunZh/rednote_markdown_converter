@@ -2,6 +2,8 @@
  * LocalStorage schema for recent edits.
  */
 
+import type { AppearanceSettings } from './appearanceSettings';
+
 export const STORAGE_KEYS = {
   recentEdits: 'rednote-recent-edits',
 } as const;
@@ -21,6 +23,7 @@ export interface RecentEditItem {
   subtitle: string;
   markdown: string;
   coverSettings: CoverSettingsStored;
+  appearanceSettings?: AppearanceSettings;
   themeId: string;
   updatedAt: string; // ISO
   pageCount: number;

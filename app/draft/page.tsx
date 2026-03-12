@@ -1,21 +1,24 @@
 'use client';
 
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CoverSettings } from '../../components/CoverCard';
 import { DraftEditorPane } from '../../components/draft/DraftEditorPane';
 import { DraftPreviewPane } from '../../components/draft/DraftPreviewPane';
+import { DraftSettingsSidebar } from '../../components/draft/DraftSettingsSidebar';
 import { DraftTopBar } from '../../components/draft/DraftTopBar';
 import { ExportProgressModal } from '../../components/draft/ExportProgressModal';
 import { ImportModal } from '../../components/ImportModal';
-import { ThemeSidebar } from '../../components/ThemeSidebar';
 import { useDraftDocument } from '../../hooks/useDraftDocument';
 import { useExportSlides } from '../../hooks/useExportSlides';
 import { useSmartPagination } from '../../hooks/useSmartPagination';
+import {
+  DEFAULT_APPEARANCE_SETTINGS,
+  getCanvasPresetConfig,
+  type AppearanceSettings,
+} from '../../lib/appearanceSettings';
 import { getThemeStyles } from '../../lib/themeConfig';
 
-const CARD_WIDTH = 405;
-const CARD_HEIGHT = 540;
 const CONTENT_PADDING_TOP_BOTTOM_REDUCTION = 6;
 const CONTENT_PADDING_LEFT_RIGHT_REDUCTION = 14;
 
@@ -29,7 +32,6 @@ const DEFAULT_COVER_SETTINGS: CoverSettings = {
 };
 
 const EditorContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'editor' | 'cover'>('editor');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [pageCountForSave, setPageCountForSave] = useState(1);
 
@@ -43,18 +45,39 @@ const EditorContent: React.FC = () => {
     setCurrentTheme,
     coverSettings,
     setCoverSettings,
+    appearanceSettings,
+    setAppearanceSettings,
     handleCreateNewDocument,
     documentRevision,
   } = useDraftDocument({
     defaultCoverSettings: DEFAULT_COVER_SETTINGS,
+    defaultAppearanceSettings: DEFAULT_APPEARANCE_SETTINGS,
     pageCount: pageCountForSave,
   });
+
+  const handleShowPageNumberChange = useCallback((checked: boolean) => {
+    setAppearanceSettings((prev) => ({ ...prev, showPageNumber: checked }));
+    setCoverSettings((prev) => (
+      prev.showPageNumber === checked ? prev : { ...prev, showPageNumber: checked }
+    ));
+  }, [setAppearanceSettings, setCoverSettings]);
+
+  const handleCanvasPresetChange = useCallback((canvasPreset: AppearanceSettings['canvasPreset']) => {
+    setAppearanceSettings((prev) => (
+      prev.canvasPreset === canvasPreset ? prev : { ...prev, canvasPreset }
+    ));
+  }, [setAppearanceSettings]);
+
+  const canvasPreset = useMemo(
+    () => getCanvasPresetConfig(appearanceSettings.canvasPreset),
+    [appearanceSettings.canvasPreset]
+  );
 
   const { pages, measureRef, blocks } = useSmartPagination({
     markdown,
     theme: currentTheme,
-    cardHeight: CARD_HEIGHT,
-    includePageNumber: coverSettings.showPageNumber,
+    cardHeight: canvasPreset.height,
+    includePageNumber: appearanceSettings.showPageNumber,
     paddingYOffset: -CONTENT_PADDING_TOP_BOTTOM_REDUCTION * 2,
   });
 
@@ -82,12 +105,13 @@ const EditorContent: React.FC = () => {
     handleExport,
   } = useExportSlides({
     exportContainerRef,
+    cardWidth: canvasPreset.width,
+    exportTargetWidth: canvasPreset.exportWidth,
     includeCover: coverSettings.enabled,
     pageCount: pages.length,
   });
 
   useEffect(() => {
-    setActiveTab('editor');
     resetExportSelections();
   }, [documentRevision, resetExportSelections]);
 
@@ -99,35 +123,22 @@ const EditorContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 overflow-hidden text-slate-800">
-      <DraftTopBar
-        isExporting={isExporting}
-        exportProgress={exportProgress}
-        isExportModalOpen={isExportModalOpen}
-        exportTargetCount={exportTargetIds.length}
-        selectedExportCount={selectedExportIds.length}
-        onSelectAll={selectAllExportTargets}
-        onClearAll={clearAllExportTargets}
-        onOpenExportModal={() => setIsExportModalOpen(true)}
-        onExport={handleExport}
-      />
+      <DraftTopBar />
 
       <main className="flex-1 flex overflow-hidden">
         <DraftEditorPane
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           textareaRef={textareaRef}
           markdown={markdown}
           setMarkdown={setMarkdown}
-          coverSettings={coverSettings}
-          setCoverSettings={setCoverSettings}
           onImportClick={() => setIsImportModalOpen(true)}
           onNewClick={handleCreateNewDocument}
         />
 
         <DraftPreviewPane
-          cardWidth={CARD_WIDTH}
-          cardHeight={CARD_HEIGHT}
+          cardWidth={canvasPreset.width}
+          cardHeight={canvasPreset.height}
           coverSettings={coverSettings}
+          showPageNumber={appearanceSettings.showPageNumber}
           currentTheme={currentTheme}
           pages={pages}
           blocks={blocks}
@@ -141,7 +152,24 @@ const EditorContent: React.FC = () => {
           contentPadding={contentPadding}
         />
 
-        <ThemeSidebar currentTheme={currentTheme} onSelect={setCurrentTheme} />
+        <DraftSettingsSidebar
+          currentTheme={currentTheme}
+          onThemeSelect={setCurrentTheme}
+          coverSettings={coverSettings}
+          setCoverSettings={setCoverSettings}
+          appearanceSettings={appearanceSettings}
+          onCanvasPresetChange={handleCanvasPresetChange}
+          onShowPageNumberChange={handleShowPageNumberChange}
+          isExporting={isExporting}
+          exportProgress={exportProgress}
+          isExportModalOpen={isExportModalOpen}
+          exportTargetCount={exportTargetIds.length}
+          selectedExportCount={selectedExportIds.length}
+          onSelectAll={selectAllExportTargets}
+          onClearAll={clearAllExportTargets}
+          onOpenExportModal={() => setIsExportModalOpen(true)}
+          onExport={handleExport}
+        />
       </main>
 
       <ImportModal

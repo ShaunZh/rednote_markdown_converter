@@ -3,6 +3,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { CoverSettings } from '../components/CoverCard';
 import {
+  DEFAULT_APPEARANCE_SETTINGS,
+  normalizeAppearanceSettings,
+  type AppearanceSettings,
+} from '../lib/appearanceSettings';
+import {
   generateDocId,
   getDocumentById,
   saveRecentEdit,
@@ -14,6 +19,7 @@ import { THEMES, type ThemeConfig } from '../lib/themeConfig';
 
 interface UseDraftDocumentProps {
   defaultCoverSettings: CoverSettings;
+  defaultAppearanceSettings?: AppearanceSettings;
   pageCount: number;
 }
 
@@ -28,11 +34,13 @@ const normalizeCoverSettings = (
 
 export function useDraftDocument({
   defaultCoverSettings,
+  defaultAppearanceSettings = DEFAULT_APPEARANCE_SETTINGS,
   pageCount,
 }: UseDraftDocumentProps) {
   const [markdown, setMarkdown] = useState('');
   const [currentTheme, setCurrentTheme] = useState<ThemeConfig>(THEMES[0]);
   const [coverSettings, setCoverSettings] = useState<CoverSettings>(defaultCoverSettings);
+  const [appearanceSettings, setAppearanceSettings] = useState<AppearanceSettings>(defaultAppearanceSettings);
   const [documentRevision, setDocumentRevision] = useState(0);
 
   const currentDocumentIdRef = useRef<string | null>(null);
@@ -47,6 +55,7 @@ export function useDraftDocument({
       variant: defaultCoverSettings.variant as CoverSettingsStored['variant'],
       showPageNumber: defaultCoverSettings.showPageNumber,
     },
+    appearanceSettings: defaultAppearanceSettings,
     themeId: THEMES[0].id,
     pageCount: 1,
   });
@@ -60,8 +69,9 @@ export function useDraftDocument({
     setMarkdown('');
     setCurrentTheme(THEMES[0]);
     setCoverSettings(defaultCoverSettings);
+    setAppearanceSettings(defaultAppearanceSettings);
     setDocumentRevision((prev) => prev + 1);
-  }, [defaultCoverSettings]);
+  }, [defaultAppearanceSettings, defaultCoverSettings]);
 
   useEffect(() => {
     if (documentId) {
@@ -69,6 +79,9 @@ export function useDraftDocument({
       if (document) {
         setMarkdown(document.markdown);
         setCoverSettings(normalizeCoverSettings(document.coverSettings, defaultCoverSettings));
+        setAppearanceSettings(
+          normalizeAppearanceSettings(document.appearanceSettings, document.coverSettings?.showPageNumber ?? defaultAppearanceSettings.showPageNumber)
+        );
         const theme = THEMES.find((candidate) => candidate.id === document.themeId);
         if (theme) {
           setCurrentTheme(theme);
@@ -80,7 +93,7 @@ export function useDraftDocument({
     }
 
     resetDocumentState();
-  }, [defaultCoverSettings, documentId, resetDocumentState]);
+  }, [defaultAppearanceSettings.showPageNumber, defaultCoverSettings, documentId, resetDocumentState]);
 
   const handleCreateNewDocument = useCallback(() => {
     resetDocumentState();
@@ -93,6 +106,7 @@ export function useDraftDocument({
     const {
       markdown: nextMarkdown,
       coverSettings: nextCoverSettings,
+      appearanceSettings: nextAppearanceSettings,
       themeId,
       pageCount: nextPageCount,
     } = latestStateRef.current;
@@ -111,6 +125,7 @@ export function useDraftDocument({
       subtitle: subtitleFromMarkdown(nextMarkdown),
       markdown: nextMarkdown,
       coverSettings: nextCoverSettings,
+      appearanceSettings: nextAppearanceSettings,
       themeId,
       pageCount: nextPageCount,
     });
@@ -127,6 +142,7 @@ export function useDraftDocument({
         variant: coverSettings.variant,
         showPageNumber: coverSettings.showPageNumber,
       },
+      appearanceSettings,
       themeId: currentTheme.id,
       pageCount,
     };
@@ -142,7 +158,7 @@ export function useDraftDocument({
       }
       saveTimeoutRef.current = null;
     };
-  }, [coverSettings, currentTheme.id, flushRecentEdit, markdown, pageCount]);
+  }, [appearanceSettings, coverSettings, currentTheme.id, flushRecentEdit, markdown, pageCount]);
 
   useEffect(() => {
     return () => {
@@ -161,6 +177,8 @@ export function useDraftDocument({
     setCurrentTheme,
     coverSettings,
     setCoverSettings,
+    appearanceSettings,
+    setAppearanceSettings,
     handleCreateNewDocument,
     documentRevision,
   };
