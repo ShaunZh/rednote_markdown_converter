@@ -32,6 +32,13 @@ export interface RecentEditItem {
 }
 
 const RECENT_MAX = 20;
+const DEFAULT_COVER_TITLES = new Set([
+  '',
+  '小红书创作指南',
+  '在这里填写标题',
+  '现代风标题',
+  '封面标题',
+]);
 
 function safeGet<T>(key: string, parse: (s: string) => T): T | null {
   if (typeof window === 'undefined') return null;
@@ -61,6 +68,10 @@ export function getRecentEdits(): RecentEditItem[] {
     if (!Array.isArray(arr)) return [];
     return arr
       .filter((x): x is RecentEditItem => x != null && typeof x === 'object' && typeof (x as RecentEditItem).id === 'string')
+      .map((item) => ({
+        ...item,
+        title: titleFromMarkdown(item.markdown, item.coverSettings?.title),
+      }))
       .slice(0, RECENT_MAX);
   } catch {
     return [];
@@ -90,11 +101,52 @@ export function generateDocId(): string {
   return `doc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/** Title from first non-empty line of markdown; fallback "未命名". */
-export function titleFromMarkdown(markdown: string): string {
-  const line = markdown.split(/\r?\n/).find((l) => l.trim().length > 0);
-  const t = line?.trim().replace(/^#+\s*/, '') ?? '';
-  return t.slice(0, 80) || '未命名';
+function cleanMarkdownLine(line: string): string {
+  const trimmed = line.trim();
+  if (!trimmed || /^<!--\s*pagebreak\s*-->$/i.test(trimmed)) {
+    return '';
+  }
+
+  return trimmed
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^\s*>\s?/, '')
+    .replace(/^\s*[-*+]\s+/, '')
+    .replace(/^\s*\d+\.\s+/, '')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_~`]/g, '')
+    .trim();
+}
+
+function normalizeCoverTitle(title?: string): string {
+  const normalized = typeof title === 'string' ? title.trim() : '';
+  if (!normalized || DEFAULT_COVER_TITLES.has(normalized)) {
+    return '';
+  }
+  return normalized;
+}
+
+/** Prefer a real document title, otherwise fallback to the first body line. */
+export function titleFromMarkdown(markdown: string, coverTitle?: string): string {
+  const lines = markdown.split(/\r?\n/);
+
+  for (const line of lines) {
+    const match = line.trim().match(/^#{1,6}\s+(.+?)\s*#*\s*$/);
+    if (match) {
+      const headingTitle = cleanMarkdownLine(match[1] ?? '');
+      if (headingTitle) {
+        return headingTitle.slice(0, 80);
+      }
+    }
+  }
+
+  const normalizedCoverTitle = normalizeCoverTitle(coverTitle);
+  if (normalizedCoverTitle) {
+    return normalizedCoverTitle.slice(0, 80);
+  }
+
+  const line = lines.map(cleanMarkdownLine).find(Boolean) ?? '';
+  return line.slice(0, 80) || '未命名';
 }
 
 /** Subtitle from second meaningful line (optional). */

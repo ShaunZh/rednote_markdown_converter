@@ -29,7 +29,10 @@ function NoteCard({ item, onRequestDelete }: { item: RecentEditItem; onRequestDe
 
   return (
     <article className="rounded-2xl bg-white border border-[#e6e6e6] p-4 shadow-sm">
-      <h3 className="text-base md:text-lg font-semibold tracking-tight text-[#1a1a1a] mb-3 line-clamp-2">
+      <h3
+        className="mb-3 truncate text-base font-semibold tracking-tight text-[#1a1a1a] md:text-lg"
+        title={item.title || '未命名'}
+      >
         {item.title || '未命名'}
       </h3>
 

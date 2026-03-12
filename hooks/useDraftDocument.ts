@@ -125,7 +125,7 @@ export function useDraftDocument({
 
     saveRecentEdit({
       id,
-      title: titleFromMarkdown(nextMarkdown),
+      title: titleFromMarkdown(nextMarkdown, nextCoverSettings.title),
       subtitle: subtitleFromMarkdown(nextMarkdown),
       markdown: nextMarkdown,
       coverSettings: nextCoverSettings,
