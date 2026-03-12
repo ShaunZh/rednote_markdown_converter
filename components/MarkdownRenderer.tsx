@@ -26,12 +26,15 @@ const MacWindowHeader = () => (
   </div>
 );
 
+const MORANDI_SECTION_ACCENT = '#fb6d6b';
+
 const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
   content,
   theme,
   appearanceSettings,
   imageRenderMode = 'blob-url',
 }) => {
+  const isMorandiTheme = theme.id === 'morandi';
   const defaultBodyFontSize = Number.parseFloat(theme.typography.baseFontSize || '16');
   const bodyFontSize = appearanceSettings?.bodyFontSize ?? (Number.isFinite(defaultBodyFontSize) ? defaultBodyFontSize : 16);
   const headingScale = appearanceSettings?.headingScale ?? 1;
@@ -108,16 +111,39 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
         {...props}
       />
     ),
-    h2: ({ node, ...props }: any) => (
-      <h2
-        className={cn(
-          "font-bold mb-2 mt-2.5",
-          theme.id === 'minimal' && "pb-2 border-b border-slate-200",
-          theme.id === 'geek' && "border-l-4 pl-3 border-[var(--theme-accent)]"
-        )}
-        style={{ color: 'var(--theme-title-color)', fontSize: `${h2Size}px`, lineHeight: 1.18 }}
-        {...props}
-      />
+    h2: ({ node, children, ...props }: any) => (
+      isMorandiTheme ? (
+        <div className="flex items-start gap-3 mb-3 mt-3">
+          <span
+            className="mt-1 block h-[46px] w-[6px] shrink-0 rounded-full"
+            style={{ backgroundColor: MORANDI_SECTION_ACCENT }}
+          />
+          <h2
+            className="inline-block border-b-2 pb-1 font-bold"
+            style={{
+              color: 'var(--theme-title-color)',
+              fontSize: `${h2Size}px`,
+              lineHeight: 1.18,
+              borderColor: MORANDI_SECTION_ACCENT,
+            }}
+            {...props}
+          >
+            {children}
+          </h2>
+        </div>
+      ) : (
+        <h2
+          className={cn(
+            "font-bold mb-2 mt-2.5",
+            theme.id === 'minimal' && "pb-2 border-b border-slate-200",
+            theme.id === 'geek' && "border-l-4 pl-3 border-[var(--theme-accent)]"
+          )}
+          style={{ color: 'var(--theme-title-color)', fontSize: `${h2Size}px`, lineHeight: 1.18 }}
+          {...props}
+        >
+          {children}
+        </h2>
+      )
     ),
     h3: ({ node, ...props }: any) => (
       <h3
@@ -134,6 +160,19 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
           lineHeight: contentLineHeight,
           fontSize: `${paragraphFontSize}px`,
         }}
+        {...props}
+      />
+    ),
+    strong: ({ node, ...props }: any) => (
+      <strong
+        className={cn(
+          isMorandiTheme && 'px-[0.08em] [-webkit-box-decoration-break:clone] [box-decoration-break:clone]'
+        )}
+        style={isMorandiTheme ? {
+          color: 'var(--theme-title-color)',
+          fontWeight: 400,
+          backgroundImage: 'linear-gradient(transparent 34%, rgba(246, 239, 196, 0.76) 34%, rgba(246, 239, 196, 0.76) 88%, transparent 88%)',
+        } : undefined}
         {...props}
       />
     ),

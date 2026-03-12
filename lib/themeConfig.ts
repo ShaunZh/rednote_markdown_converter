@@ -127,7 +127,7 @@ export const THEMES: ThemeConfig[] = [
     name: '莫兰迪',
     type: 'pro',
     container: {
-      background: '#fdfbf7', // Warm Beige
+      background: '#fefef4',
       padding: '32px',
       radius: '24px',
       shadow: '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01)',
