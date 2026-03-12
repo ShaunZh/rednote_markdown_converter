@@ -66,6 +66,24 @@ export function useExportSlides({
 
   const yieldToMain = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
   const waitForNextFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+  const waitForImagesToSettle = async (container: HTMLElement) => {
+    const deadline = Date.now() + 10000;
+
+    while (Date.now() < deadline) {
+      const hasPendingLocalImages = container.querySelector('[data-local-image-status="loading"]') !== null;
+      const images = Array.from(container.querySelectorAll<HTMLImageElement>('img'));
+      const hasPendingRemoteImages = images.some((image) => !image.complete);
+
+      if (!hasPendingLocalImages && !hasPendingRemoteImages) {
+        await waitForNextFrame();
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 80);
+      });
+    }
+  };
 
   const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) =>
     new Promise<T>((resolve, reject) => {
@@ -155,6 +173,8 @@ export function useExportSlides({
         await (document as Document & { fonts?: FontFaceSet }).fonts?.ready;
       }
 
+      await waitForImagesToSettle(exportContainer);
+
       const zip = new JSZip();
       const failedIndexes: number[] = [];
       let successCount = 0;
@@ -172,6 +192,7 @@ export function useExportSlides({
               pixelRatio: exportScale,
               cacheBust: true,
               skipAutoScale: true,
+              skipFonts: true,
             }),
             EXPORT_TIMEOUT_MS,
             `第 ${index + 1} 张图片导出`

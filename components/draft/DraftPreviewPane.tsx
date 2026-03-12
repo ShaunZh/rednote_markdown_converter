@@ -5,6 +5,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { IPhoneHeader } from '../ThemeHeaders';
 import type { Block } from '../../hooks/useSmartPagination';
 import type { AppearanceSettings } from '../../lib/appearanceSettings';
+import type { LocalImageRenderMode } from '../../lib/localImageStore';
 import type { ThemeConfig } from '../../lib/themeConfig';
 
 interface DraftPreviewPaneProps {
@@ -41,6 +42,7 @@ const PageCard = React.memo(function PageCard({
   showPageNumber,
   themeStyles,
   contentPadding,
+  imageRenderMode,
 }: {
   exportId?: string;
   width: number;
@@ -56,6 +58,7 @@ const PageCard = React.memo(function PageCard({
   showPageNumber: boolean;
   themeStyles: React.CSSProperties;
   contentPadding: string;
+  imageRenderMode?: LocalImageRenderMode;
 }) {
   return (
     <div
@@ -96,6 +99,7 @@ const PageCard = React.memo(function PageCard({
               content={block.content}
               theme={currentTheme}
               appearanceSettings={appearanceSettings}
+              imageRenderMode={imageRenderMode}
             />
           ))}
         </div>
@@ -176,6 +180,7 @@ function DraftPreviewPaneComponent({
               showPageNumber={showPageNumber}
               themeStyles={themeStyles}
               contentPadding={contentPadding}
+              imageRenderMode="blob-url"
             />
           </div>
         ))}
@@ -200,6 +205,7 @@ function DraftPreviewPaneComponent({
             content={block.content}
             theme={currentTheme}
             appearanceSettings={appearanceSettings}
+            imageRenderMode="blob-url"
           />
         ))}
       </div>
@@ -235,6 +241,7 @@ function DraftPreviewPaneComponent({
                 showPageNumber={showPageNumber}
                 themeStyles={themeStyles}
                 contentPadding={contentPadding}
+                imageRenderMode="data-url"
               />
             </div>
           ))}
