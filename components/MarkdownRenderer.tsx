@@ -1,16 +1,20 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+import { LocalMarkdownImage } from './LocalMarkdownImage';
 import type { AppearanceSettings } from '../lib/appearanceSettings';
-import { ThemeConfig } from '../lib/themeConfig';
+import { isLocalImageMarkdownSrc, type LocalImageRenderMode } from '../lib/localImageStore';
+import { type ThemeConfig } from '../lib/themeConfig';
 import { cn } from '../lib/utils';
 
 interface MarkdownRendererProps {
   content: string;
   theme: ThemeConfig;
   appearanceSettings?: AppearanceSettings;
+  imageRenderMode?: LocalImageRenderMode;
 }
 
 const MacWindowHeader = () => (
@@ -21,7 +25,12 @@ const MacWindowHeader = () => (
   </div>
 );
 
-const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, theme, appearanceSettings }) => {
+const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
+  content,
+  theme,
+  appearanceSettings,
+  imageRenderMode = 'blob-url',
+}) => {
   const defaultBodyFontSize = Number.parseFloat(theme.typography.baseFontSize || '16');
   const bodyFontSize = appearanceSettings?.bodyFontSize ?? (Number.isFinite(defaultBodyFontSize) ? defaultBodyFontSize : 16);
   const headingScale = appearanceSettings?.headingScale ?? 1;
@@ -195,9 +204,14 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
         {...props}
       />
     ),
-    img: ({ node, ...props }: any) => (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img className="rounded-lg my-2.5 w-full object-cover shadow-sm" {...props} alt={props.alt || ''} />
+    img: ({ node, src, alt, className, ...props }: any) => (
+      <LocalMarkdownImage
+        src={typeof src === 'string' ? src : ''}
+        alt={alt || ''}
+        renderMode={imageRenderMode}
+        className={cn('rounded-lg my-2.5 w-full object-cover shadow-sm', className)}
+        {...props}
+      />
     ),
     a: ({ node, ...props }: any) => (
       <a
@@ -255,6 +269,7 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({ content, t
     <div className="w-full markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        urlTransform={(url) => (isLocalImageMarkdownSrc(url) ? url : defaultUrlTransform(url))}
         components={components}
       >
         {content}
@@ -270,6 +285,7 @@ export const MarkdownRenderer = React.memo(
     && prevProps.theme.id === nextProps.theme.id
     && prevProps.appearanceSettings?.bodyFontSize === nextProps.appearanceSettings?.bodyFontSize
     && prevProps.appearanceSettings?.headingScale === nextProps.appearanceSettings?.headingScale
+    && prevProps.imageRenderMode === nextProps.imageRenderMode
   )
 );
 

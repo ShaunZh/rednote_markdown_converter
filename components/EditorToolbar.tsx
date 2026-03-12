@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Bold,
   Italic,
@@ -19,6 +19,16 @@ import {
   Undo2,
   Redo2,
 } from 'lucide-react';
+
+import {
+  getStoredImageUploadMode,
+  setStoredImageUploadMode,
+  type ImageUploadMode,
+} from '../lib/imageUploadMode';
+import {
+  createLocalImageMarkdownSrc,
+  saveLocalImage,
+} from '../lib/localImageStore';
 import { RICH_TEXT_TEMPLATE } from '../lib/richTextTemplate';
 
 interface EditorToolbarProps {
@@ -38,58 +48,79 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isSyntaxModalOpen, setIsSyntaxModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>('local');
+  const cloudinaryEnabled = Boolean(CLOUD_NAME && UPLOAD_PRESET);
+
+  useEffect(() => {
+    const storedMode = getStoredImageUploadMode();
+    setImageUploadMode(cloudinaryEnabled && storedMode === 'cloudinary' ? 'cloudinary' : 'local');
+  }, [cloudinaryEnabled]);
+
+  const updateImageUploadMode = (mode: ImageUploadMode) => {
+    const nextMode = mode === 'cloudinary' && !cloudinaryEnabled ? 'local' : mode;
+    setImageUploadMode(nextMode);
+    setStoredImageUploadMode(nextMode);
+  };
+
+  const insertImageMarkdown = (imageUrl: string, altText: string) => {
+    const imageMarkdown = `![${altText}](${imageUrl})`;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const prev = textarea.value;
+    const newText = prev.substring(0, start) + imageMarkdown + prev.substring(end);
+    setMarkdown(newText);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = start + imageMarkdown.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
 
   const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
 
-    if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      alert('Cloudinary 配置缺失，请检查 .env.local 中的 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME 和 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET');
-      return;
-    }
-
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', UPLOAD_PRESET);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-        { method: 'POST', body: formData }
-      );
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || '上传失败');
-      }
-
-      const data = await res.json();
-      // Insert Cloudinary transformation: scale to 700px wide (2× card width for retina)
-      const imageUrl: string = data.secure_url.replace(
-        '/upload/',
-        '/upload/w_700,c_scale/'
-      );
       const altText = file.name.replace(/\.[^.]+$/, '');
-      const imageMarkdown = `![${altText}](${imageUrl})`;
 
-      const textarea = textareaRef.current;
-      if (!textarea) return;
+      if (imageUploadMode === 'local') {
+        const localImageId = await saveLocalImage(file);
+        insertImageMarkdown(createLocalImageMarkdownSrc(localImageId), altText);
+      } else {
+        if (!CLOUD_NAME || !UPLOAD_PRESET) {
+          throw new Error('Cloudinary 配置缺失，请检查 .env.local');
+        }
 
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const prev = textarea.value;
-      const newText = prev.substring(0, start) + imageMarkdown + prev.substring(end);
-      setMarkdown(newText);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', UPLOAD_PRESET);
 
-      requestAnimationFrame(() => {
-        textarea.focus();
-        const cursor = start + imageMarkdown.length;
-        textarea.setSelectionRange(cursor, cursor);
-      });
-    } catch (err: any) {
-      alert(`图片上传失败：${err.message}`);
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+          { method: 'POST', body: formData }
+        );
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error?.message || '上传失败');
+        }
+
+        const data = await res.json();
+        const imageUrl: string = data.secure_url.replace(
+          '/upload/',
+          '/upload/w_700,c_scale/'
+        );
+        insertImageMarkdown(imageUrl, altText);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '图片上传失败';
+      alert(`图片上传失败：${message}`);
     } finally {
       setIsUploading(false);
     }
@@ -258,10 +289,36 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           label="手动分页"
         />
         <div className="w-px h-4 bg-neutral-300 mx-1" />
+        <div className="flex items-center rounded-lg border border-neutral-200 bg-white p-0.5">
+          <button
+            type="button"
+            onClick={() => updateImageUploadMode('local')}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+              imageUploadMode === 'local'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-neutral-100'
+            }`}
+          >
+            本地
+          </button>
+          <button
+            type="button"
+            onClick={() => updateImageUploadMode('cloudinary')}
+            disabled={!cloudinaryEnabled}
+            title={cloudinaryEnabled ? '上传到 Cloudinary' : '当前未配置 Cloudinary'}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+              imageUploadMode === 'cloudinary'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-neutral-100'
+            } disabled:cursor-not-allowed disabled:opacity-40`}
+          >
+            云端
+          </button>
+        </div>
         <ToolbarButton
           icon={isUploading ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
           onClick={() => !isUploading && imageInputRef.current?.click()}
-          label={isUploading ? '上传中...' : '插入图片'}
+          label={isUploading ? '上传中...' : imageUploadMode === 'local' ? '插入本地图片' : '插入云端图片'}
           disabled={isUploading}
         />
         <input
