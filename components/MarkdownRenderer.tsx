@@ -46,6 +46,7 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
   const h1Size = Math.max(20, bodyFontSize * 1.42 * headingScale);
   const h2Size = Math.max(18, bodyFontSize * 1.18 * headingScale);
   const h3Size = Math.max(16, bodyFontSize * 1.06 * headingScale);
+  const morandiSectionMarkerHeight = Math.round(h2Size * 1.32);
 
   // Use CSS variables for everything to ensure dynamic theming
   const components = {
@@ -113,10 +114,13 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
     ),
     h2: ({ node, children, ...props }: any) => (
       isMorandiTheme ? (
-        <div className="flex items-start gap-3 mb-3 mt-3">
+        <div className="mb-3 mt-3 flex items-center gap-3">
           <span
-            className="mt-1 block h-[46px] w-[6px] shrink-0 rounded-full"
-            style={{ backgroundColor: MORANDI_SECTION_ACCENT }}
+            className="block w-[6px] shrink-0 rounded-full"
+            style={{
+              height: `${morandiSectionMarkerHeight}px`,
+              backgroundColor: MORANDI_SECTION_ACCENT,
+            }}
           />
           <h2
             className="inline-block border-b-2 pb-1 font-bold"
