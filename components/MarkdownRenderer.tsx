@@ -330,7 +330,7 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
   };
 
   return (
-    <div className="w-full markdown-body">
+    <div className="w-full markdown-body flow-root">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) => (isLocalImageMarkdownSrc(url) ? url : defaultUrlTransform(url))}
