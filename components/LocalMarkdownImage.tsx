@@ -82,19 +82,18 @@ export const LocalMarkdownImage = React.memo(function LocalMarkdownImage({
   }
 
   return (
-    <div data-local-image-status="ready">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={resolvedSrc}
-        alt={alt || ''}
-        className={className}
-        crossOrigin={
-          resolvedSrc.startsWith('blob:') || resolvedSrc.startsWith('data:image/')
-            ? undefined
-            : 'anonymous'
-        }
-        {...imgProps}
-      />
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      data-local-image-status="ready"
+      src={resolvedSrc}
+      alt={alt || ''}
+      className={className}
+      crossOrigin={
+        resolvedSrc.startsWith('blob:') || resolvedSrc.startsWith('data:image/')
+          ? undefined
+          : 'anonymous'
+      }
+      {...imgProps}
+    />
   );
 });
