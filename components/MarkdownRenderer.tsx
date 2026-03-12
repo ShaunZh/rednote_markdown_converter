@@ -7,6 +7,7 @@ import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pris
 import { LocalMarkdownImage } from './LocalMarkdownImage';
 import type { AppearanceSettings } from '../lib/appearanceSettings';
 import { isLocalImageMarkdownSrc, type LocalImageRenderMode } from '../lib/localImageStore';
+import { parseMarkdownImageLayout } from '../lib/markdownImages';
 import { type ThemeConfig } from '../lib/themeConfig';
 import { cn } from '../lib/utils';
 
@@ -205,13 +206,33 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
       />
     ),
     img: ({ node, src, alt, className, ...props }: any) => (
-      <LocalMarkdownImage
-        src={typeof src === 'string' ? src : ''}
-        alt={alt || ''}
-        renderMode={imageRenderMode}
-        className={cn('rounded-lg my-2.5 w-full object-cover shadow-sm', className)}
-        {...props}
-      />
+      (() => {
+        const { layout } = parseMarkdownImageLayout(typeof props.title === 'string' ? props.title : null);
+        const imageStyle: React.CSSProperties = {
+          width: `${layout.widthPercent}%`,
+          maxWidth: '100%',
+          height: 'auto',
+          display: 'block',
+          marginLeft: layout.align === 'left' ? 0 : 'auto',
+          marginRight: layout.align === 'right' ? 0 : 'auto',
+        };
+
+        return (
+          <div
+            data-rednote-content-image="true"
+            className="my-2.5 w-full transition-shadow data-[selected=true]:rounded-xl data-[selected=true]:ring-2 data-[selected=true]:ring-slate-900/30 data-[selected=true]:ring-offset-2 data-[selected=true]:ring-offset-white"
+          >
+            <LocalMarkdownImage
+              src={typeof src === 'string' ? src : ''}
+              alt={alt || ''}
+              renderMode={imageRenderMode}
+              className={cn('block rounded-lg object-cover shadow-sm', className)}
+              style={imageStyle}
+              {...props}
+            />
+          </div>
+        );
+      })()
     ),
     a: ({ node, ...props }: any) => (
       <a

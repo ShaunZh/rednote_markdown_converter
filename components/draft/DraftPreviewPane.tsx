@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { CoverCard, type CoverSettings } from '../CoverCard';
 import { MarkdownRenderer } from '../MarkdownRenderer';
@@ -25,6 +25,9 @@ interface DraftPreviewPaneProps {
   exportContainerRef: React.RefObject<HTMLDivElement>;
   themeStyles: React.CSSProperties;
   contentPadding: string;
+  selectedImageIndex: number | null;
+  onImageSelect: (imageIndex: number) => void;
+  onImageDeselect: () => void;
 }
 
 const PageCard = React.memo(function PageCard({
@@ -133,10 +136,51 @@ function DraftPreviewPaneComponent({
   exportContainerRef,
   themeStyles,
   contentPadding,
+  selectedImageIndex,
+  onImageSelect,
+  onImageDeselect,
 }: DraftPreviewPaneProps) {
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const imageNodes = Array.from(
+      previewRef.current?.querySelectorAll<HTMLElement>('[data-rednote-content-image="true"]') ?? []
+    );
+
+    imageNodes.forEach((node, index) => {
+      node.dataset.selected = selectedImageIndex === index ? 'true' : 'false';
+    });
+  }, [pages, selectedImageIndex]);
+
+  const handlePreviewClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const imageNode = target.closest<HTMLElement>('[data-rednote-content-image="true"]');
+
+    if (!imageNode || !previewRef.current?.contains(imageNode)) {
+      onImageDeselect();
+      return;
+    }
+
+    const imageNodes = Array.from(
+      previewRef.current.querySelectorAll<HTMLElement>('[data-rednote-content-image="true"]')
+    );
+    const imageIndex = imageNodes.indexOf(imageNode);
+
+    if (imageIndex >= 0) {
+      onImageSelect(imageIndex);
+      return;
+    }
+
+    onImageDeselect();
+  };
+
   return (
     <>
-      <div className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner">
+      <div
+        ref={previewRef}
+        className="w-[540px] bg-neutral-100/50 overflow-y-auto p-8 relative flex flex-col items-center gap-8 shadow-inner"
+        onClick={handlePreviewClick}
+      >
         {coverSettings.enabled && (
           <div className="relative">
             <CoverCard

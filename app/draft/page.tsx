@@ -17,6 +17,11 @@ import {
   getCanvasPresetConfig,
   type AppearanceSettings,
 } from '../../lib/appearanceSettings';
+import {
+  parseMarkdownImages,
+  updateMarkdownImageLayout,
+  type ImageAlign,
+} from '../../lib/markdownImages';
 import { getThemeStyles } from '../../lib/themeConfig';
 
 const CONTENT_PADDING_TOP_BOTTOM_REDUCTION = 6;
@@ -36,6 +41,7 @@ const DEFAULT_COVER_SETTINGS: CoverSettings = {
 const EditorContent: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [pageCountForSave, setPageCountForSave] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const exportContainerRef = useRef<HTMLDivElement>(null);
@@ -97,6 +103,41 @@ const EditorContent: React.FC = () => {
     () => `${appearanceSettings.bodyFontSize ?? 'auto'}:${appearanceSettings.headingScale ?? 'auto'}`,
     [appearanceSettings.bodyFontSize, appearanceSettings.headingScale]
   );
+  const markdownImages = useMemo(() => parseMarkdownImages(markdown), [markdown]);
+  const selectedImage = selectedImageIndex === null ? null : markdownImages[selectedImageIndex] ?? null;
+
+  useEffect(() => {
+    if (selectedImageIndex !== null && !markdownImages[selectedImageIndex]) {
+      setSelectedImageIndex(null);
+    }
+  }, [markdownImages, selectedImageIndex]);
+
+  const handleSelectedImageWidthChange = useCallback((widthPercent: number) => {
+    if (selectedImageIndex === null) {
+      return;
+    }
+
+    setMarkdown((prev) => updateMarkdownImageLayout(prev, selectedImageIndex, { widthPercent }));
+  }, [selectedImageIndex, setMarkdown]);
+
+  const handleSelectedImageAlignChange = useCallback((align: ImageAlign) => {
+    if (selectedImageIndex === null) {
+      return;
+    }
+
+    setMarkdown((prev) => updateMarkdownImageLayout(prev, selectedImageIndex, { align }));
+  }, [selectedImageIndex, setMarkdown]);
+
+  const handleSelectedImageReset = useCallback(() => {
+    if (selectedImageIndex === null) {
+      return;
+    }
+
+    setMarkdown((prev) => updateMarkdownImageLayout(prev, selectedImageIndex, {
+      widthPercent: 100,
+      align: 'center',
+    }));
+  }, [selectedImageIndex, setMarkdown]);
 
   const { pages, measureRef, blocks } = useSmartPagination({
     markdown,
@@ -177,6 +218,9 @@ const EditorContent: React.FC = () => {
           exportContainerRef={exportContainerRef}
           themeStyles={themeStyles}
           contentPadding={contentPadding}
+          selectedImageIndex={selectedImageIndex}
+          onImageSelect={setSelectedImageIndex}
+          onImageDeselect={() => setSelectedImageIndex(null)}
         />
 
         <DraftSettingsSidebar
@@ -199,6 +243,11 @@ const EditorContent: React.FC = () => {
           onClearAll={clearAllExportTargets}
           onOpenExportModal={() => setIsExportModalOpen(true)}
           onExport={handleExport}
+          selectedImage={selectedImage}
+          onSelectedImageWidthChange={handleSelectedImageWidthChange}
+          onSelectedImageAlignChange={handleSelectedImageAlignChange}
+          onResetSelectedImageLayout={handleSelectedImageReset}
+          onClearSelectedImage={() => setSelectedImageIndex(null)}
         />
       </main>
 

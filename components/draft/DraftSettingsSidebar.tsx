@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Check, Download, ImagePlus, Loader2, Lock, Trash2 } from 'lucide-react';
+import { Check, Download, ImagePlus, Loader2, Lock, Trash2, X } from 'lucide-react';
 
 import type { CoverSettings } from '../CoverCard';
+import { LocalMarkdownImage } from '../LocalMarkdownImage';
 import { CANVAS_PRESETS, type AppearanceSettings } from '../../lib/appearanceSettings';
 import { fileToCoverImageDataUrl } from '../../lib/coverImage';
+import type { ImageAlign, MarkdownImageEntry } from '../../lib/markdownImages';
 import { getProxyImageSrc } from '../../lib/proxyImage';
 import { THEMES, type ThemeConfig } from '../../lib/themeConfig';
 import { cn } from '../../lib/utils';
@@ -28,6 +30,11 @@ interface DraftSettingsSidebarProps {
   onClearAll: () => void;
   onOpenExportModal: () => void;
   onExport: () => void;
+  selectedImage: MarkdownImageEntry | null;
+  onSelectedImageWidthChange: (widthPercent: number) => void;
+  onSelectedImageAlignChange: (align: ImageAlign) => void;
+  onResetSelectedImageLayout: () => void;
+  onClearSelectedImage: () => void;
 }
 
 function Section({
@@ -95,6 +102,11 @@ export function DraftSettingsSidebar({
   onClearAll,
   onOpenExportModal,
   onExport,
+  selectedImage,
+  onSelectedImageWidthChange,
+  onSelectedImageAlignChange,
+  onResetSelectedImageLayout,
+  onClearSelectedImage,
 }: DraftSettingsSidebarProps) {
   const defaultBodyFontSize = Number.parseFloat(currentTheme.typography.baseFontSize || '16');
   const bodyFontSizeValue = appearanceSettings.bodyFontSize ?? (Number.isFinite(defaultBodyFontSize) ? defaultBodyFontSize : 16);
@@ -485,6 +497,104 @@ export function DraftSettingsSidebar({
           <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3 text-xs leading-5 text-slate-500">
             当前这些参数是基于主题的文档级覆盖项，不会直接改写主题预设本身。
           </div>
+        </Section>
+
+        <Section title="图片设置" description="在中间预览区点选图片后，可以在这里直接调整宽度和位置。">
+          {selectedImage ? (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">
+                      第 {selectedImage.index + 1} 张图片
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {selectedImage.alt || selectedImage.src}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onClearSelectedImage}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                    aria-label="取消选中图片"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                  <div className="flex justify-center">
+                    <LocalMarkdownImage
+                      src={selectedImage.src}
+                      renderMode="blob-url"
+                      alt={selectedImage.alt || '选中图片'}
+                      className="rounded-lg object-cover shadow-sm"
+                      style={{
+                        width: `${selectedImage.layout.widthPercent}%`,
+                        maxWidth: '100%',
+                        height: 'auto',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-slate-700">
+                    <span className="font-medium">图片宽度</span>
+                    <span className="tabular-nums text-slate-500">{selectedImage.layout.widthPercent}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="25"
+                    max="100"
+                    step="5"
+                    value={selectedImage.layout.widthPercent}
+                    onChange={(event) => onSelectedImageWidthChange(Number(event.target.value))}
+                    className="w-full accent-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-slate-700">图片位置</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      ['left', '左对齐'],
+                      ['center', '居中'],
+                      ['right', '右对齐'],
+                    ] as const).map(([align, label]) => (
+                      <button
+                        key={align}
+                        type="button"
+                        onClick={() => onSelectedImageAlignChange(align)}
+                        className={cn(
+                          'rounded-xl border px-2 py-2.5 text-xs font-medium transition-colors',
+                          selectedImage.layout.align === align
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-neutral-200 bg-white text-slate-600 hover:border-slate-300'
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onResetSelectedImageLayout}
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-neutral-100"
+                >
+                  恢复默认图片布局
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-8 text-center text-sm leading-6 text-slate-500">
+              在预览区点选任意正文图片后，这里会出现对应的宽度和位置控制。
+            </div>
+          )}
         </Section>
       </div>
     </aside>
